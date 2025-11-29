@@ -21,58 +21,42 @@ static unsigned char hid_to_doom(uint8_t code) {
     if (code == 0x29) return KEY_ESCAPE;
     if (code == 0x2A) return KEY_BACKSPACE;
     if (code == 0x2B) return KEY_TAB;
-    if (code == 0x2C) return ' ';
+    if (code == 0x2C) return KEY_USE;  // Space key mapped to USE action
     if (code == 0x4F) return KEY_RIGHTARROW;
     if (code == 0x50) return KEY_LEFTARROW;
     if (code == 0x51) return KEY_DOWNARROW;
     if (code == 0x52) return KEY_UPARROW;
     
-    // Modifiers (mapped to Doom keys if possible)
-    // Doom uses KEY_RCTRL etc?
-    // doomkeys.h defines:
-    // KEY_RIGHTARROW	0xae
-    // KEY_LEFTARROW	0xac
-    // KEY_UPARROW	0xad
-    // KEY_DOWNARROW	0xaf
-    // KEY_ESCAPE	27
-    // KEY_ENTER	13
-    // KEY_TAB		9
-    // KEY_F1		(0x80+0x3b)
-    // KEY_BACKSPACE	127
-    // KEY_PAUSE	0xff
-    // KEY_EQUALS	0x3d
-    // KEY_MINUS	0x2d
-    // KEY_RSHIFT	(0x80+0x36)
-    // KEY_RCTRL	(0x80+0x1d)
-    // KEY_RALT		(0x80+0x38)
-    // KEY_LALT		KEY_RALT
+    // Function keys
+    if (code >= 0x3A && code <= 0x45) {
+        return KEY_F1 + (code - 0x3A);
+    }
     
-    if (code == 0xE0) return KEY_RCTRL; // Left Control
-    if (code == 0xE1) return KEY_RSHIFT; // Left Shift
-    if (code == 0xE2) return KEY_RALT; // Left Alt
-    if (code == 0xE4) return KEY_RCTRL; // Right Control
-    if (code == 0xE5) return KEY_RSHIFT; // Right Shift
-    if (code == 0xE6) return KEY_RALT; // Right Alt
-
+    // Note: Modifiers (E0-E7) are handled separately in modifier byte,
+    // not as keycodes, so we don't map them here
+    
     return 0;
 }
 
 static void key_handler(hid_keyboard_report_t *curr, hid_keyboard_report_t *prev) {
-    // Check modifiers
-    // This is tricky because modifier is a bitmask.
-    // We should check bits.
-    // But for now, let's just rely on keycodes if they are reported there?
-    // HID report usually puts modifiers in 'modifier' byte, not keycode array.
-    // So we need to check 'modifier' byte.
-    
+    // Check modifiers - Map Ctrl to FIRE, Alt to ALT (for strafe)
     uint8_t changed_mods = curr->modifier ^ prev->modifier;
     if (changed_mods) {
-        if (changed_mods & KEYBOARD_MODIFIER_LEFTCTRL) event_queue.push({(curr->modifier & KEYBOARD_MODIFIER_LEFTCTRL) ? 1 : 0, KEY_RCTRL});
-        if (changed_mods & KEYBOARD_MODIFIER_LEFTSHIFT) event_queue.push({(curr->modifier & KEYBOARD_MODIFIER_LEFTSHIFT) ? 1 : 0, KEY_RSHIFT});
-        if (changed_mods & KEYBOARD_MODIFIER_LEFTALT) event_queue.push({(curr->modifier & KEYBOARD_MODIFIER_LEFTALT) ? 1 : 0, KEY_RALT});
-        if (changed_mods & KEYBOARD_MODIFIER_RIGHTCTRL) event_queue.push({(curr->modifier & KEYBOARD_MODIFIER_RIGHTCTRL) ? 1 : 0, KEY_RCTRL});
-        if (changed_mods & KEYBOARD_MODIFIER_RIGHTSHIFT) event_queue.push({(curr->modifier & KEYBOARD_MODIFIER_RIGHTSHIFT) ? 1 : 0, KEY_RSHIFT});
-        if (changed_mods & KEYBOARD_MODIFIER_RIGHTALT) event_queue.push({(curr->modifier & KEYBOARD_MODIFIER_RIGHTALT) ? 1 : 0, KEY_RALT});
+        // Map Ctrl (left or right) to KEY_FIRE for shooting
+        if (changed_mods & (KEYBOARD_MODIFIER_LEFTCTRL | KEYBOARD_MODIFIER_RIGHTCTRL)) {
+            int ctrl_pressed = (curr->modifier & (KEYBOARD_MODIFIER_LEFTCTRL | KEYBOARD_MODIFIER_RIGHTCTRL)) != 0;
+            event_queue.push({ctrl_pressed, KEY_FIRE});  // Changed from KEY_RCTRL to KEY_FIRE
+        }
+        // Map Shift to Shift (for running)
+        if (changed_mods & (KEYBOARD_MODIFIER_LEFTSHIFT | KEYBOARD_MODIFIER_RIGHTSHIFT)) {
+            int shift_pressed = (curr->modifier & (KEYBOARD_MODIFIER_LEFTSHIFT | KEYBOARD_MODIFIER_RIGHTSHIFT)) != 0;
+            event_queue.push({shift_pressed, KEY_RSHIFT});
+        }
+        // Map Alt to Alt (for strafing)
+        if (changed_mods & (KEYBOARD_MODIFIER_LEFTALT | KEYBOARD_MODIFIER_RIGHTALT)) {
+            int alt_pressed = (curr->modifier & (KEYBOARD_MODIFIER_LEFTALT | KEYBOARD_MODIFIER_RIGHTALT)) != 0;
+            event_queue.push({alt_pressed, KEY_RALT});
+        }
     }
 
     // Check keys
