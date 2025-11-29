@@ -1,0 +1,52 @@
+# Build Directory
+build/
+
+# Binary and Object Files
+*.elf
+*.uf2
+*.bin
+*.hex
+*.map
+*.dis
+*.o
+*.obj
+*.a
+*.lib
+*.lo
+*.la
+
+# CMake
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+install_manifest.txt
+
+# Python
+__pycache__/
+*.py[cod]
+*.class
+.venv/
+venv/
+env/
+
+# Logs
+*.log
+openocd.log
+screenlog.0
+
+# System Files
+.DS_Store
+.DS_Store?
+._*
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# VS Code
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+!.vscode/*.code-snippets
