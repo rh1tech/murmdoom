@@ -18,7 +18,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#if defined(FEATURE_SOUND) && !defined(__DJGPP__)
+#if defined(FEATURE_SOUND) && !defined(__DJGPP__) && !defined(USE_PICO_SOUND)
 #include <SDL_mixer.h>
 #endif
 
@@ -106,6 +106,20 @@ static void InitSfxModule(boolean use_sfx_prefix)
 
     sound_module = NULL;
 
+    printf("I_InitSound: requested sfx device %d\n", snd_sfxdevice);
+
+#ifdef USE_PICO_SOUND
+    if (DG_sound_module.Init(use_sfx_prefix))
+    {
+        printf("I_InitSound: forced Pico sound module\n");
+        sound_module = &DG_sound_module;
+        return;
+    }
+
+    printf("I_InitSound: Pico sound module failed to init\n");
+    return;
+#endif
+
     for (i=0; sound_modules[i] != NULL; ++i)
     {
         // Is the sfx device in the list of devices supported by
@@ -119,11 +133,15 @@ static void InitSfxModule(boolean use_sfx_prefix)
 
             if (sound_modules[i]->Init(use_sfx_prefix))
             {
+                printf("I_InitSound: using sound module %d (device count %d)\n",
+                       i, sound_modules[i]->num_sound_devices);
                 sound_module = sound_modules[i];
                 return;
             }
         }
     }
+
+    printf("I_InitSound: no sound module found for device %d\n", snd_sfxdevice);
 }
 
 // Initialize music according to snd_musicdevice.
@@ -265,12 +283,30 @@ void I_UpdateSoundParams(int channel, int vol, int sep)
     }
 }
 
-int I_StartSound(sfxinfo_t *sfxinfo, int channel, int vol, int sep)
+static int ClampPitchRange(int pitch)
+{
+    if (pitch < 0)
+    {
+        return 0;
+    }
+    else if (pitch > 255)
+    {
+        return 255;
+    }
+
+    return pitch;
+}
+
+int I_StartSound(sfxinfo_t *sfxinfo, int channel, int vol, int sep, int pitch)
 {
     if (sound_module != NULL)
     {
         CheckVolumeSeparation(&vol, &sep);
-        return sound_module->StartSound(sfxinfo, channel, vol, sep);
+        return sound_module->StartSound(sfxinfo,
+                                       channel,
+                                       vol,
+                                       sep,
+                                       ClampPitchRange(pitch));
     }
     else
     {
@@ -394,8 +430,10 @@ boolean I_MusicIsPlaying(void)
 
 void I_BindSoundVariables(void)
 {
+#ifndef NO_USE_LIBSAMPLERATE
     extern int use_libsamplerate;
     extern float libsamplerate_scale;
+#endif
 
     M_BindVariable("snd_musicdevice",   &snd_musicdevice);
     M_BindVariable("snd_sfxdevice",     &snd_sfxdevice);
@@ -408,7 +446,7 @@ void I_BindSoundVariables(void)
     M_BindVariable("snd_samplerate",    &snd_samplerate);
     M_BindVariable("snd_cachesize",     &snd_cachesize);
 
-#ifdef FEATURE_SOUND
+#if defined(FEATURE_SOUND) && !defined(NO_USE_LIBSAMPLERATE)
     M_BindVariable("use_libsamplerate",   &use_libsamplerate);
     M_BindVariable("libsamplerate_scale", &libsamplerate_scale);
 #endif

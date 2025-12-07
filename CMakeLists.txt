@@ -1,12 +1,26 @@
 cmake_minimum_required(VERSION 3.13)
 
+# Set board to Pico 2 (RP2350)
+set(PICO_BOARD pico2 CACHE STRING "Pico board type")
+
 include(pico_sdk_import.cmake)
+
+# Import pico-extras for audio_i2s library
+set(PICO_EXTRAS_PATH ${CMAKE_CURRENT_LIST_DIR}/pico-extras CACHE PATH "Path to pico-extras")
+if(EXISTS ${PICO_EXTRAS_PATH}/external/pico_extras_import.cmake)
+    include(${PICO_EXTRAS_PATH}/external/pico_extras_import.cmake)
+endif()
 
 project(murmdoom C CXX ASM)
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 17)
 
 pico_sdk_init()
+
+# Initialize pico-extras if available
+if(COMMAND pico_extras_init)
+    pico_extras_init()
+endif()
 
 # Add fatfs
 add_subdirectory(src/fatfs)
@@ -42,6 +56,7 @@ list(APPEND DOOMGENERIC_SOURCES
     src/doomgeneric/doomgeneric/i_endoom.c
     src/doomgeneric/doomgeneric/doomgeneric.c # Re-add doomgeneric.c if it was excluded
     src/doomgeneric/doomgeneric/wi_stuff.c
+    src/pico/i_picosound.c
 )
 
 # Remove duplicates
@@ -59,6 +74,7 @@ add_executable(murmdoom
 target_include_directories(murmdoom PRIVATE
     src
     src/doomgeneric/doomgeneric
+    src/pico
     src/fatfs
     drivers
     drivers/sdcard
@@ -68,15 +84,29 @@ target_compile_definitions(murmdoom PRIVATE
     CMAP256
     DOOMGENERIC_RESX=320
     DOOMGENERIC_RESY=240
-    NO_SOUND # For now
+    FEATURE_SOUND  # Enable sound support
+    USE_PICO_SOUND  # Use Pico audio i2s backend
+    PICO_AUDIO_I2S_DATA_PIN=26
+    PICO_AUDIO_I2S_CLOCK_PIN_BASE=27
+    PICO_AUDIO_I2S_PIO=1
+    PICO_AUDIO_I2S_STATE_MACHINE=2
+    PICO_AUDIO_I2S_DMA_IRQ=1
+    NUM_SOUND_CHANNELS=16
+    NO_USE_LIBSAMPLERATE
+    NO_USE_TIMIDITY
+    NO_USE_GUS
+    NO_USE_MUSIC_PACKS
 )
 
 target_link_libraries(murmdoom
     pico_stdlib
     pico_multicore
+    pico_audio_i2s
     hardware_spi
     hardware_dma
     hardware_pio
+    hardware_pwm
+    hardware_irq
     sdcard
     ps2kbd
     fatfs

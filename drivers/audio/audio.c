@@ -22,6 +22,10 @@
  * IN THE SOFTWARE.
  */
 
+#ifndef AUDIO_PWM_PIN
+#define AUDIO_PWM_PIN 0
+#endif
+
 #ifndef PWM_PIN0
 #define PWM_PIN0 (AUDIO_PWM_PIN&0xfe)
 #endif
@@ -42,7 +46,7 @@ bool is_i2s_enabled = false;
  */
 void i2s_init(i2s_config_t *i2s_config) {
     if (is_i2s_enabled) {
-        uint8_t func = GPIO_FUNC_PIO1;    // TODO: GPIO_FUNC_PIO0 for pio0 or GPIO_FUNC_PIO1 for pio1
+        uint8_t func = (i2s_config->pio == pio0) ? GPIO_FUNC_PIO0 : GPIO_FUNC_PIO1;
         gpio_set_function(i2s_config->data_pin, func);
         gpio_set_function(i2s_config->bck_pin, func);
         gpio_set_function(i2s_config->lck_pin, func);
@@ -51,6 +55,7 @@ void i2s_init(i2s_config_t *i2s_config) {
 
         /* Set PIO clock */
         uint32_t system_clock_frequency = clock_get_hz(clk_sys);
+        // Use * 4 for 32 bits per frame (16 bits per channel) -> 64 PIO cycles per frame
         uint32_t divider = system_clock_frequency * 4 / i2s_config->sample_freq; // avoid arithmetic overflow
 
         #ifdef I2S_CS4334
@@ -147,9 +152,11 @@ void i2s_dma_write(i2s_config_t *i2s_config,const int16_t *samples) {
     dma_channel_wait_for_finish_blocking(i2s_config->dma_channel);
     /* Copy samples into the DMA buffer */
     if (is_i2s_enabled) {
+        uint32_t *buf32 = (uint32_t *)i2s_config->dma_buf;
         for (register size_t i = 0; i < (i2s_config->dma_trans_count); ++i) {
-            register uint32_t t = (uint32_t)(samples[i]);
-            i2s_config->dma_buf[i] = t << 16 | t;
+            uint32_t left = (uint16_t)samples[2*i];
+            uint32_t right = (uint16_t)samples[2*i+1];
+            buf32[i] = (left << 16) | right;
         }
     } else {
         for(uint16_t i=0;i<i2s_config->dma_trans_count*2;i++) {

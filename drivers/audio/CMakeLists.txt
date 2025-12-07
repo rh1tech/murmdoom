@@ -5,10 +5,11 @@ target_sources(audio INTERFACE
 		${CMAKE_CURRENT_LIST_DIR}/audio.h
 )
 
-target_link_libraries(audio INTERFACE hardware_pio hardware_clocks)
+target_link_libraries(audio INTERFACE hardware_pio hardware_clocks hardware_pwm)
 
 target_include_directories(audio INTERFACE
   ${CMAKE_CURRENT_LIST_DIR}
+  ${CMAKE_CURRENT_BINARY_DIR}
 )
 
 pico_generate_pio_header(audio
