@@ -146,11 +146,6 @@ static const int index_table[] = {
 
 static void (*music_generator)(audio_buffer_t *buffer);
 
-// Debug helper to check music_generator value from other modules
-void *I_GetMusicGeneratorPtr(void) {
-    return (void*)music_generator;
-}
-
 static boolean sound_initialized = false;
 static channel_t channels[NUM_SOUND_CHANNELS];
 static boolean use_sfx_prefix = true;
@@ -451,18 +446,8 @@ static boolean I_Pico_SoundIsPlaying(int channel)
 
 static void mix_audio_buffer(audio_buffer_t *buffer)
 {
-    static int mix_generator_logs = 0;
-    if (mix_generator_logs < 5) {
-        printf("mix_audio_buffer: START music_generator=%p\n", music_generator);
-        mix_generator_logs++;
-    }
-    
     if (music_generator) {
         music_generator(buffer);
-        if (mix_generator_logs < 6) {
-            printf("mix_audio_buffer: AFTER music_generator=%p\n", music_generator);
-            mix_generator_logs++;
-        }
     } else {
         memset(buffer->buffer->bytes, 0, buffer->buffer->size);
     }

@@ -1660,7 +1660,6 @@ static void I_OPL_UnRegisterSong(void *handle)
         // Reset temp PSRAM for next song
         extern void psram_reset_temp(void);
         psram_reset_temp();
-        printf("I_OPL_UnRegisterSong: Temp PSRAM reset\n");
     }
 }
 
@@ -1689,10 +1688,7 @@ static boolean ConvertMus(should_be_const byte *musdata, int len, char *filename
     if (result == 0)
     {
         mem_get_buf(outstream, &outbuf, &outbuf_len);
-
-        printf("ConvertMus: Writing %zu bytes to %s\n", outbuf_len, filename);
-        boolean write_result = M_WriteFile(filename, outbuf, outbuf_len);
-        printf("ConvertMus: M_WriteFile returned %d (1=success)\n", write_result);
+        M_WriteFile(filename, outbuf, outbuf_len);
     }
 
     mem_fclose(instream);
@@ -1751,13 +1747,10 @@ static void *I_OPL_RegisterSong(void *data, int len)
     else
     {
         // Assume a MUS file and try to convert
-        printf("I_OPL_RegisterSong: Converting MUS to MIDI...\n");
-        int convert_result = ConvertMus(data, len, filename);
-        printf("I_OPL_RegisterSong: ConvertMus returned %d (0=success)\n", convert_result);
+        ConvertMus(data, len, filename);
     }
 
     int free_file = 1;
-    printf("I_OPL_RegisterSong: Loading MIDI file: %s\n", filename);
     // Use temp PSRAM for MIDI data so it can be freed between songs
     extern void psram_set_temp_mode(int enable);
     extern void psram_reset_temp(void);
@@ -1765,7 +1758,6 @@ static void *I_OPL_RegisterSong(void *data, int len)
     psram_set_temp_mode(1);
     result = MIDI_LoadFile(filename);
     psram_set_temp_mode(0);
-    printf("I_OPL_RegisterSong: MIDI_LoadFile returned %p\n", result);
 
 #if USE_MIDI_DUMP_FILE
     for(int i=0;i<numlumps;i++) {

@@ -520,10 +520,8 @@ static boolean ReadTrack(midi_track_t *track, FILE *stream)
         if (track->num_events >= allocated_events)
         {
             allocated_events = (track->num_events + 128); // Grow in 128-event chunks
-            printf("ReadTrack: Allocating for %u events (have %u)\n", allocated_events, track->num_events);
             new_events = midi_malloc(sizeof(midi_event_t) * allocated_events);
             if (new_events == NULL) {
-                printf("ReadTrack: Failed to allocate events array\n");
                 return false;
             }
             if (track->events != NULL) {
@@ -538,7 +536,6 @@ static boolean ReadTrack(midi_track_t *track, FILE *stream)
         event = &track->events[track->num_events];
         if (!ReadEvent(event, &last_event_type, stream))
         {
-            printf("ReadTrack: Failed to read event %u\n", track->num_events);
             return false;
         }
 
@@ -575,13 +572,10 @@ static boolean ReadAllTracks(midi_file_t *file, FILE *stream)
     unsigned int i;
 
     // Allocate list of tracks and read each track:
-    printf("ReadAllTracks: Allocating %u tracks\n", file->num_tracks);
-
     file->tracks = midi_malloc(sizeof(midi_track_t) * file->num_tracks);
 
     if (file->tracks == NULL)
     {
-        printf("ReadAllTracks: Failed to allocate tracks\n");
         return false;
     }
 
@@ -591,10 +585,8 @@ static boolean ReadAllTracks(midi_file_t *file, FILE *stream)
 
     for (i=0; i<file->num_tracks; ++i)
     {
-        printf("ReadAllTracks: Reading track %u\n", i);
         if (!ReadTrack(&file->tracks[i], stream))
         {
-            printf("ReadAllTracks: Failed to read track %u\n", i);
             return false;
         }
     }
@@ -664,12 +656,10 @@ midi_file_t *MIDI_LoadFile(char *filename)
     midi_file_t *file;
     FILE *stream;
 
-    printf("MIDI_LoadFile: Allocating file struct\n");
     file = midi_malloc(sizeof(midi_file_t));
 
     if (file == NULL)
     {
-        printf("MIDI_LoadFile: Failed to allocate file struct\n");
         return NULL;
     }
 
@@ -679,7 +669,6 @@ midi_file_t *MIDI_LoadFile(char *filename)
     file->buffer_size = 0;
 
     // Open file
-    printf("MIDI_LoadFile: Opening file %s\n", filename);
 
     stream = fopen(filename, "rb");
 
@@ -691,7 +680,6 @@ midi_file_t *MIDI_LoadFile(char *filename)
     }
 
     // Read MIDI file header
-    printf("MIDI_LoadFile: Reading file header\n");
 
     if (!ReadFileHeader(file, stream))
     {
@@ -701,18 +689,15 @@ midi_file_t *MIDI_LoadFile(char *filename)
     }
 
     // Read all tracks:
-    printf("MIDI_LoadFile: Reading %d tracks\n", file->num_tracks);
 
     if (!ReadAllTracks(file, stream))
     {
-        printf("MIDI_LoadFile: Failed to read all tracks\n");
         fclose(stream);
         MIDI_FreeFile(file);
         return NULL;
     }
 
     fclose(stream);
-    printf("MIDI_LoadFile: Success, returning %p\n", file);
 
     return file;
 }

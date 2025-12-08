@@ -1,0 +1,57 @@
+GNU GENERAL PUBLIC LICENSE
+Version 2, June 1991
+
+Copyright (c) 2024-2025 Mikhail Matveev <xtreme@outlook.com>
+
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+---
+
+THIRD-PARTY LICENSES AND ACKNOWLEDGMENTS
+
+This project incorporates code from the following projects:
+
+1. Chocolate Doom (https://github.com/chocolate-doom/chocolate-doom)
+   Copyright (C) 1993-1996 Id Software, Inc.
+   Copyright (C) 2005-2023 Simon Howard and contributors
+   License: GNU GPL v2
+
+2. doomgeneric (https://github.com/ozkl/doomgeneric)
+   Based on Chocolate Doom
+   License: GNU GPL v2
+
+3. rp2040-doom / pico-doom (https://github.com/kilograham/rp2040-doom)
+   Copyright (C) 2021-2023 Graham Sanderson
+   Optimized Raspberry Pi Pico port with EMU8950 OPL emulation
+   License: GNU GPL v2 (with MIT-licensed EMU8950)
+
+4. EMU8950 (https://github.com/digital-sound-antiques/emu8950)
+   Copyright (C) 2001-2020 Mitsutaka Okazaki
+   Copyright (C) 2021-2022 Graham Sanderson
+   OPL2 sound chip emulator with ARM assembly optimizations
+   License: MIT
+
+5. FatFs (http://elm-chan.org/fsw/ff/)
+   Copyright (C) 2022 ChaN
+   Generic FAT Filesystem Module
+   License: FatFs License (BSD-style)
+
+6. pico-extras (https://github.com/raspberrypi/pico-extras)
+   Copyright (C) 2020-2023 Raspberry Pi (Trading) Ltd.
+   Audio I2S and additional Pico SDK functionality
+   License: BSD 3-Clause
+
+The full text of the GNU GPL v2 license can be found at:
+https://www.gnu.org/licenses/old-licenses/gpl-2.0.html

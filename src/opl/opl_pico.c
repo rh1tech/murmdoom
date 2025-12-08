@@ -190,17 +190,7 @@ static int32_t opl_temp_buffer[2048 * 2]; // stereo, max samples
 
 void OPL_Pico_Mix_callback(audio_buffer_t *audio_buffer)
 {
-    static int opl_mix_logs = 0;
-    if (opl_mix_logs < 3) {
-        printf("OPL_Pico_Mix_callback: ENTER buffer=%p max_samples=%d\n",
-               audio_buffer, audio_buffer ? audio_buffer->max_sample_count : 0);
-        extern void *I_GetMusicGeneratorPtr(void);
-        printf("OPL_Pico_Mix_callback: music_generator at ENTRY = %p\n", I_GetMusicGeneratorPtr());
-        opl_mix_logs++;
-    }
-    
     if (!audio_buffer || !audio_buffer->buffer) {
-        printf("OPL_Pico_Mix_callback: ERROR - invalid buffer!\n");
         return;
     }
     
@@ -260,29 +250,14 @@ void OPL_Pico_Mix_callback(audio_buffer_t *audio_buffer)
             }
 #elif USE_EMU8950_OPL
             if (nsamples) {
-                static int conv_logs = 0;
-                if (conv_logs < 2) {
-                    extern void *I_GetMusicGeneratorPtr(void);
-                    printf("OPL: Before OPL_calc, music_generator=%p\n", I_GetMusicGeneratorPtr());
-                    conv_logs++;
-                }
-                
                 // Safety check
                 if (filled + nsamples > buffer_samples) {
-                    printf("OPL ERROR: Would overflow! filled=%d nsamples=%d buffer_samples=%d\n",
-                           filled, nsamples, buffer_samples);
                     nsamples = buffer_samples - filled;
                 }
                 
                 // OPL outputs 32-bit samples but audio buffer expects 16-bit
                 // Use file-scope buffer to avoid any stack/corruption issues
                 OPL_calc_buffer_stereo(emu8950_opl, opl_temp_buffer, nsamples);
-                
-                if (conv_logs < 3) {
-                    extern void *I_GetMusicGeneratorPtr(void);
-                    printf("OPL: After OPL_calc, music_generator=%p\n", I_GetMusicGeneratorPtr());
-                    conv_logs++;
-                }
                 
                 // Convert 32-bit packed stereo to 16-bit separate L/R channels
                 // OPL_calc_buffer_stereo writes: buffer[i] = (left << 16) | right
@@ -296,12 +271,6 @@ void OPL_Pico_Mix_callback(audio_buffer_t *audio_buffer)
                     int16_t right = (int16_t)(packed & 0xFFFF);
                     sndptr16[i * 2] = left;
                     sndptr16[i * 2 + 1] = right;
-                }
-                
-                if (conv_logs < 4) {
-                    extern void *I_GetMusicGeneratorPtr(void);
-                    printf("OPL: After conversion, music_generator=%p\n", I_GetMusicGeneratorPtr());
-                    conv_logs++;
                 }
             }
 #else
@@ -323,24 +292,10 @@ void OPL_Pico_Mix_callback(audio_buffer_t *audio_buffer)
         }
         audio_buffer->sample_count = audio_buffer->max_sample_count;
 #if !USE_WOODY_OPL
-        static int amp_logs = 0;
-        if (amp_logs < 1) {
-            extern void *I_GetMusicGeneratorPtr(void);
-            printf("OPL: Before amplification, music_generator=%p\n", I_GetMusicGeneratorPtr());
-            amp_logs++;
-        }
-        
-        // Re-enable amplification now that buffer overflow is fixed
+        // Amplify by 8x for audible output
         int16_t *samples = (int16_t *)audio_buffer->buffer->bytes;
         for(uint i=0;i<audio_buffer->sample_count * 2; i++) {
             samples[i] <<= 3;
-        }
-        
-        if (amp_logs < 2) {
-            extern void *I_GetMusicGeneratorPtr(void);
-            printf("OPL: After amplification, music_generator=%p\n", I_GetMusicGeneratorPtr());
-            printf("OPL: EXIT callback, music_generator=%p\n", I_GetMusicGeneratorPtr());
-            amp_logs++;
         }
 #endif
 //#if PICO_ON_DEVICE
