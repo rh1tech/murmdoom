@@ -300,26 +300,30 @@ static boolean ReadChannelEvent(midi_event_t *event,
 }
 
 // Read sysex event:
+// OPTIMIZATION: Don't allocate memory for sysex data - just skip it
+// SysEx events are ignored during OPL playback anyway
 
 static boolean ReadSysExEvent(midi_event_t *event, int event_type,
                               FILE *stream)
 {
+    uint32_t length;
+    
     event->event_type = event_type;
 
-    if (!ReadVariableLength(&event->data.sysex.length, stream))
+    if (!ReadVariableLength(&length, stream))
     {
         stderr_print( "ReadSysExEvent: Failed to read length of "
                                         "SysEx block\n");
         return false;
     }
 
-    // Read the byte sequence:
-
-    event->data.sysex.data = ReadByteSequence(event->data.sysex.length, stream);
-
-    if (event->data.sysex.data == NULL)
+    // Skip the sysex data instead of reading it - saves memory
+    event->data.sysex.length = length;
+    event->data.sysex.data = NULL;  // No data stored
+    
+    if (fseek(stream, length, SEEK_CUR) != 0)
     {
-        stderr_print( "ReadSysExEvent: Failed while reading SysEx event\n");
+        stderr_print( "ReadSysExEvent: Failed to skip SysEx data\n");
         return false;
     }
 
@@ -327,10 +331,13 @@ static boolean ReadSysExEvent(midi_event_t *event, int event_type,
 }
 
 // Read meta event:
+// OPTIMIZATION: Only store data for SET_TEMPO events (3 bytes)
+// All other meta events are ignored during OPL playback
 
 static boolean ReadMetaEvent(midi_event_t *event, FILE *stream)
 {
     byte b = 0;
+    uint32_t length;
 
     event->event_type = MIDI_EVENT_META;
 
@@ -346,21 +353,35 @@ static boolean ReadMetaEvent(midi_event_t *event, FILE *stream)
 
     // Read length of meta event data:
 
-    if (!ReadVariableLength(&event->data.meta.length, stream))
+    if (!ReadVariableLength(&length, stream))
     {
-        stderr_print( "ReadSysExEvent: Failed to read length of "
-                                        "SysEx block\n");
+        stderr_print( "ReadMetaEvent: Failed to read length of "
+                                        "meta event data\n");
         return false;
     }
 
-    // Read the byte sequence:
+    event->data.meta.length = length;
 
-    event->data.meta.data = ReadByteSequence(event->data.meta.length, stream);
-
-    if (event->data.meta.data == NULL)
+    // Only store data for SET_TEMPO events (type 0x51, 3 bytes)
+    // All other meta events are ignored during OPL playback
+    if (b == MIDI_META_SET_TEMPO && length == 3)
     {
-        stderr_print( "ReadSysExEvent: Failed while reading SysEx event\n");
-        return false;
+        event->data.meta.data = ReadByteSequence(length, stream);
+        if (event->data.meta.data == NULL)
+        {
+            stderr_print( "ReadMetaEvent: Failed to read tempo data\n");
+            return false;
+        }
+    }
+    else
+    {
+        // Skip the data instead of reading it - saves memory
+        event->data.meta.data = NULL;
+        if (length > 0 && fseek(stream, length, SEEK_CUR) != 0)
+        {
+            stderr_print( "ReadMetaEvent: Failed to skip meta data\n");
+            return false;
+        }
     }
 
     return true;
@@ -493,6 +514,28 @@ static boolean ReadTrackHeader(midi_track_t *track, FILE *stream)
     return true;
 }
 
+// Maximum events per track to prevent OOM with very large MIDI files
+#define MAX_EVENTS_PER_TRACK 50000
+
+// Helper to insert synthetic end-of-track event for truncation
+static void InsertEndOfTrack(midi_track_t *track)
+{
+    if (track->num_events > 0)
+    {
+        // Overwrite the last event with end-of-track
+        midi_event_t *event = &track->events[track->num_events - 1];
+        // Free any data the event might have
+        if (event->event_type == MIDI_EVENT_META && event->data.meta.data != NULL) {
+            midi_free(event->data.meta.data);
+        }
+        event->delta_time = 0;
+        event->event_type = MIDI_EVENT_META;
+        event->data.meta.type = MIDI_META_END_OF_TRACK;
+        event->data.meta.length = 0;
+        event->data.meta.data = NULL;
+    }
+}
+
 static boolean ReadTrack(midi_track_t *track, FILE *stream)
 {
     midi_event_t *new_events;
@@ -516,13 +559,30 @@ static boolean ReadTrack(midi_track_t *track, FILE *stream)
 
     for (;;)
     {
+        // Check event limit to prevent OOM
+        if (track->num_events >= MAX_EVENTS_PER_TRACK)
+        {
+            printf("MIDI: Track truncated at %d events (limit)\n", track->num_events);
+            InsertEndOfTrack(track);
+            break;
+        }
+        
         // Allocate in chunks to avoid reallocating every event
         if (track->num_events >= allocated_events)
         {
-            allocated_events = (track->num_events + 128); // Grow in 128-event chunks
+            // Try smaller chunks near memory limits
+            unsigned int grow_by = (allocated_events < 1000) ? 64 : 32;
+            allocated_events = track->num_events + grow_by;
+            
             new_events = midi_malloc(sizeof(midi_event_t) * allocated_events);
             if (new_events == NULL) {
-                return false;
+                // Allocation failed - truncate the track here
+                printf("MIDI: Track truncated at %d events (OOM)\n", track->num_events);
+                if (track->num_events > 0) {
+                    InsertEndOfTrack(track);
+                    break;  // Continue with truncated track
+                }
+                return false;  // No events at all, real failure
             }
             if (track->events != NULL) {
                 memcpy(new_events, track->events, sizeof(midi_event_t) * track->num_events);
@@ -536,6 +596,12 @@ static boolean ReadTrack(midi_track_t *track, FILE *stream)
         event = &track->events[track->num_events];
         if (!ReadEvent(event, &last_event_type, stream))
         {
+            // Read error - try to salvage what we have
+            if (track->num_events > 0) {
+                printf("MIDI: Track truncated at %d events (read error)\n", track->num_events);
+                InsertEndOfTrack(track);
+                break;
+            }
             return false;
         }
 

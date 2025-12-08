@@ -1330,7 +1330,7 @@ static void MetaEvent(opl_track_data_t *track, midi_event_t *event)
             break;
 
         case MIDI_META_SET_TEMPO:
-            if (data_len == 3)
+            if (data_len == 3 && data != NULL)
             {
                 MetaSetTempo((data[0] << 16) | (data[1] << 8) | data[2]);
             }
