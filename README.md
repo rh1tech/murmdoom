@@ -123,6 +123,14 @@ picotool load -f build/murmdoom.uf2
    - `doom2.wad` (DOOM II)
 3. A `.savegame/` directory will be created automatically for save files
 
+### Shareware WAD Downloads
+
+If you don't have a DOOM WAD file, you can download the shareware versions:
+- **DOOM Shareware** (`doom1.wad`): [Download from Doomworld](https://www.doomworld.com/classicdoom/info/shareware.php) or [id Software FTP](https://www.idsoftware.com/games/doom/doom-shareware)
+- **Freedoom** (free open-source alternative): [freedoom.github.io](https://freedoom.github.io/)
+
+For the full game, purchase DOOM or DOOM II from [Steam](https://store.steampowered.com/app/2280/DOOM_1993/) or [GOG](https://www.gog.com/game/doom_doom_ii).
+
 ## Controls
 
 Standard DOOM keyboard controls:
