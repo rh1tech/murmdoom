@@ -102,6 +102,7 @@ typedef struct
     unsigned int chunk_start;      // First event index in current chunk
     unsigned int chunk_count;      // Number of events in current chunk  
     long file_pos;                 // File position for next chunk read
+    long initial_file_pos;         // File position at start of track (for restart)
     unsigned int last_event_type;  // Running status for MIDI parsing
     boolean end_of_track;          // True if we've read the end-of-track event
 #else
@@ -679,6 +680,7 @@ static boolean ReadTrackFirstChunk(midi_track_t *track, FILE *stream)
 
     // Save position before reading events
     track->file_pos = ftell(stream);
+    track->initial_file_pos = track->file_pos;  // Save for restart
     
     // Read first chunk of events
     events_read = ReadTrackChunk(track, stream, MIDI_STREAM_CHUNK_SIZE);
@@ -1066,6 +1068,37 @@ void MIDI_RestartIterator(midi_track_iter_t *iter)
     th_sized_bit_input_init(&iter->bit_input, iter->track->buffer, iter->track->buffer_size);
     musx_decoder_init(&iter->decoder, &iter->bit_input, iter->decoder_space, count_of(iter->decoder_space), tmp_buf, sizeof(tmp_buf));
     peek_event(iter);
+#elif !USE_DIRECT_MIDI_LUMP
+    // Streaming mode: need to reload first chunk
+    midi_track_t *track = iter->track;
+    midi_file_t *file = iter->file;
+    
+    if (file && file->stream && track->chunk_start > 0)
+    {
+        // Free existing events
+        for (unsigned int i = 0; i < track->chunk_count; i++)
+        {
+            FreeEvent(&track->events[i]);
+        }
+        
+        // Reset track state for first chunk
+        track->chunk_start = 0;
+        track->chunk_count = 0;
+        track->last_event_type = 0;
+        track->end_of_track = false;
+        
+        // Seek back to start of track data
+        fseek(file->stream, track->initial_file_pos, SEEK_SET);
+        track->file_pos = track->initial_file_pos;
+        
+        // Read first chunk again
+        int events_read = ReadTrackChunk(track, file->stream, MIDI_STREAM_CHUNK_SIZE);
+        if (events_read > 0)
+        {
+            track->num_events = events_read;
+            printf("MIDI: Restarted track, loaded %d events\n", events_read);
+        }
+    }
 #endif
 }
 
