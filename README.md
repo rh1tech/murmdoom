@@ -27,13 +27,13 @@ Both boards provide all necessary peripherals out of the box—no additional wir
 - **HDMI connector** (directly connected via resistors, no HDMI encoder needed)
 - **SD card module** (SPI mode)
 - **PS/2 keyboard** (directly connected)
-- **I2S DAC module** (e.g., PCM5102A) for audio output
+- **I2S DAC module** (e.g., TDA1387) for audio output
 
 ### PSRAM Options
 
 MurmDoom requires 8MB PSRAM to run. You can obtain PSRAM-equipped hardware in several ways:
 
-1. **Solder a PSRAM chip** on top of the Flash chip on a standard Pico 2
+1. **Solder a PSRAM chip** on top of the Flash chip on a Pico 2 clone (SOP-8 flash chips are only available on clones, not the original Pico 2)
 2. **Build a [Nyx 2](https://rh1.tech/projects/nyx?area=nyx2)** — a DIY RP2350 board with integrated PSRAM
 3. **Purchase a [Pimoroni Pico Plus 2](https://shop.pimoroni.com/products/pimoroni-pico-plus-2?variant=42092668289107)** — a ready-made Pico 2 with 8MB PSRAM
 
