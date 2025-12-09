@@ -1656,16 +1656,10 @@ static void I_OPL_UnRegisterSong(void *handle)
 
     if (handle != NULL)
     {
-        extern size_t psram_get_temp_offset(void);
-        size_t temp_before = psram_get_temp_offset();
-        printf("PSRAM Temp before unregister: %d bytes\n", (int)temp_before);
-        
         MIDI_FreeFile(handle);
         // Reset temp PSRAM for next song
         extern void psram_reset_temp(void);
         psram_reset_temp();
-        
-        printf("PSRAM Temp after unregister reset: 0 bytes\n");
     }
 }
 
@@ -1764,19 +1758,10 @@ static void *I_OPL_RegisterSong(void *data, int len)
     // Use temp PSRAM for MIDI data so it can be freed between songs
     extern void psram_set_temp_mode(int enable);
     extern void psram_reset_temp(void);
-    extern size_t psram_get_temp_offset(void);
-    
-    // Debug: Show temp memory state (already reset at function start)
-    size_t temp_before = psram_get_temp_offset();
-    printf("PSRAM Temp before load: %d bytes (should be 0)\n", (int)temp_before);
     
     psram_set_temp_mode(1);
     result = MIDI_LoadFile(filename);
     psram_set_temp_mode(0);
-    
-    // Debug: Show temp memory state after load
-    size_t temp_after = psram_get_temp_offset();
-    printf("PSRAM Temp after load: %d bytes used\n", (int)temp_after);
 
 #if USE_MIDI_DUMP_FILE
     for(int i=0;i<numlumps;i++) {
@@ -1793,7 +1778,6 @@ static void *I_OPL_RegisterSong(void *data, int len)
         stderr_print( "I_OPL_RegisterSong: Failed to load MID.\n");
         // Reset temp memory on failure to clean up partial allocations
         psram_reset_temp();
-        printf("PSRAM Temp reset after failed load\n");
     }
 
     // remove file now
@@ -1843,16 +1827,13 @@ static void I_OPL_ShutdownMusic(void)
 
 static boolean I_OPL_InitMusic(void)
 {
-    printf("I_OPL_InitMusic: Starting...\n");
 #if !DOOM_TINY
     const char *dmxoption;
     opl_init_result_t chip_type;
     OPL_SetSampleRate(snd_samplerate);
-    printf("I_OPL_InitMusic: Calling OPL_Init...\n");
     chip_type = OPL_Init(opl_io_port);
     if (chip_type == OPL_INIT_NONE)
     {
-        printf("Dude.  The Adlib isn't responding.\n");
         return false;
     }
 
@@ -1883,13 +1864,9 @@ static boolean I_OPL_InitMusic(void)
 #endif
 
     // Initialize all registers.
-
-    printf("I_OPL_InitMusic: Calling OPL_InitRegisters...\n");
     OPL_InitRegisters(opl_opl3mode);
 
     // Load instruments from GENMIDI lump:
-
-    printf("I_OPL_InitMusic: Loading instruments...\n");
     if (!LoadInstrumentTable())
     {
         OPL_Shutdown();
@@ -1901,7 +1878,6 @@ static boolean I_OPL_InitMusic(void)
     tracks = NULL;
     num_tracks = 0;
     music_initialized = true;
-    printf("I_OPL_InitMusic: Complete!\n");
 
     return true;
 }

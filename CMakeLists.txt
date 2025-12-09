@@ -3,6 +3,9 @@ cmake_minimum_required(VERSION 3.13)
 # Set board to Pico 2 (RP2350)
 set(PICO_BOARD pico2 CACHE STRING "Pico board type")
 
+# Board configuration variant (M1, M2)
+set(BOARD_VARIANT "M1" CACHE STRING "Board variant: M1 or M2")
+
 include(pico_sdk_import.cmake)
 
 # Import pico-extras for audio_i2s library
@@ -90,6 +93,7 @@ target_include_directories(murmdoom PRIVATE
 )
 
 target_compile_definitions(murmdoom PRIVATE
+    BOARD_${BOARD_VARIANT}
     CMAP256
     DOOMGENERIC_RESX=320
     DOOMGENERIC_RESY=240
@@ -97,8 +101,6 @@ target_compile_definitions(murmdoom PRIVATE
     USE_PICO_SOUND  # Use Pico audio i2s backend
     USE_OPL_MUSIC=1  # Enable OPL music
     USE_EMU8950_OPL=1  # Use emu8950 OPL emulator
-    PICO_AUDIO_I2S_DATA_PIN=26
-    PICO_AUDIO_I2S_CLOCK_PIN_BASE=27
     PICO_AUDIO_I2S_PIO=1
     PICO_AUDIO_I2S_STATE_MACHINE=2
     PICO_AUDIO_I2S_DMA_IRQ=1
@@ -125,6 +127,19 @@ target_compile_definitions(murmdoom PRIVATE
     EMU8950_NO_RATECONV=1
     PICO_ON_DEVICE=1
 )
+
+# Set I2S pins based on board variant
+if(BOARD_VARIANT STREQUAL "M1")
+    target_compile_definitions(murmdoom PRIVATE
+        PICO_AUDIO_I2S_DATA_PIN=26
+        PICO_AUDIO_I2S_CLOCK_PIN_BASE=27
+    )
+elseif(BOARD_VARIANT STREQUAL "M2")
+    target_compile_definitions(murmdoom PRIVATE
+        PICO_AUDIO_I2S_DATA_PIN=9
+        PICO_AUDIO_I2S_CLOCK_PIN_BASE=10
+    )
+endif()
 
 target_link_libraries(murmdoom
     pico_stdlib

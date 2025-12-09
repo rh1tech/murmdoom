@@ -547,7 +547,6 @@ static int ReadTrackChunk(midi_track_t *track, FILE *stream, unsigned int max_ev
         track->events = midi_malloc(sizeof(midi_event_t) * max_events);
         if (track->events == NULL)
         {
-            printf("MIDI: Failed to allocate event buffer\n");
             return -1;
         }
     }
@@ -656,7 +655,6 @@ int MIDI_LoadNextChunk(midi_file_t *file, unsigned int track_num)
     }
     
     track->num_events = track->chunk_start + track->chunk_count;
-    printf("MIDI: Loaded next chunk, %d events (total %d)\n", events_read, track->num_events);
     
     return 1;
 }
@@ -690,8 +688,6 @@ static boolean ReadTrackFirstChunk(midi_track_t *track, FILE *stream)
     }
     
     track->num_events = events_read;
-    
-    printf("MIDI: Track loaded %d events (streaming enabled)\n", events_read);
     
     return true;
 }
@@ -1096,7 +1092,6 @@ void MIDI_RestartIterator(midi_track_iter_t *iter)
         if (events_read > 0)
         {
             track->num_events = events_read;
-            printf("MIDI: Restarted track, loaded %d events\n", events_read);
         }
     }
 #endif

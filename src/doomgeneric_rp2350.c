@@ -32,50 +32,36 @@ extern void stdio_fatfs_init(void);
 FATFS fs;
 
 void DG_Init() {
-    printf("DG_Init: Initializing PSRAM...\n");
-    // Initialize PSRAM
-    psram_init(PSRAM_CS_PIN);
+    // Initialize PSRAM (pin auto-detected based on chip package)
+    uint psram_pin = get_psram_pin();
+    psram_init(psram_pin);
     psram_set_sram_mode(0); // Use PSRAM
-    printf("DG_Init: PSRAM Initialized.\n");
 
-    printf("DG_Init: Allocating Screen Buffer in PSRAM...\n");
+    // Allocate screen buffer in PSRAM
     DG_ScreenBuffer = (pixel_t*)psram_malloc(DOOMGENERIC_RESX * DOOMGENERIC_RESY * sizeof(pixel_t));
     if (!DG_ScreenBuffer) {
-        printf("DG_Init: Failed to allocate screen buffer in PSRAM!\n");
-        // Try malloc as fallback? No, we are OOM.
         panic("DG_Init: OOM for Screen Buffer");
     }
-    printf("DG_Init: Screen Buffer allocated at %p\n", DG_ScreenBuffer);
     
-    // Clear screen buffer to black (color 0)
+    // Clear screen buffer to black
     memset(DG_ScreenBuffer, 0, DOOMGENERIC_RESX * DOOMGENERIC_RESY * sizeof(pixel_t));
 
-    printf("DG_Init: Initializing HDMI...\n");
     // Initialize HDMI
     graphics_init(g_out_HDMI);
-    graphics_set_res(320, 240);  // Physical display is 240 lines
-    
-    // Set buffer to DG_ScreenBuffer
+    graphics_set_res(320, 240);
     graphics_set_buffer((uint8_t*)DG_ScreenBuffer);
-    printf("DG_Init: HDMI Initialized.\n");
 
-    printf("DG_Init: Mounting SD Card...\n");
     // Mount SD Card
     FRESULT fr = f_mount(&fs, "", 1);
     if (fr != FR_OK) {
-        printf("Failed to mount SD card: %d\n", fr);
-    } else {
-        printf("DG_Init: SD Card Mounted.\n");
+        panic("Failed to mount SD card");
     }
     
     // Initialize stdio wrapper for FatFS
     stdio_fatfs_init();
-    printf("DG_Init: stdio FatFS wrapper initialized.\n");
 
-    printf("DG_Init: Initializing Keyboard...\n");
     // Initialize PS/2 Keyboard
     ps2kbd_init();
-    printf("DG_Init: Keyboard Initialized.\n");
 }
 
 void DG_DrawFrame() {
