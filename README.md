@@ -2,6 +2,15 @@
 
 DOOM for Raspberry Pi Pico 2 (RP2350) with HDMI output, SD card, PS/2 keyboard, and OPL music.
 
+## Supported Boards
+
+This firmware is designed for the following RP2350-based boards with integrated HDMI, SD card, PS/2, and PSRAM:
+
+- **[Murmulator](https://murmulator.ru)** — A compact retro-computing platform based on RP Pico 2, designed for emulators and classic games.
+- **[FRANK](https://rh1.tech/projects/frank?area=about)** — A versatile development board based on RP Pico 2, HDMI output, and extensive I/O options.
+
+Both boards provide all necessary peripherals out of the box—no additional wiring required.
+
 ## Features
 
 - Native 320×240 HDMI video output via PIO
