@@ -1167,13 +1167,6 @@ void D_DoomMain (void)
     int numiwadlumps;
 #endif
 
-    // Debug: test f_stat at very start of D_DoomMain
-    {
-        extern int f_stat(const char*, void*);
-        int fr = f_stat("heretic1.wad", NULL);
-        printf("f_stat at D_DoomMain start: %d\n", fr);
-    }
-
     I_AtExit(D_Endoom, false);
 
     // print banner
@@ -1182,13 +1175,6 @@ void D_DoomMain (void)
 
     DEH_printf("Z_Init: Init zone memory allocation daemon. \n");
     Z_Init ();
-
-    // Debug: test f_stat after Z_Init
-    {
-        extern int f_stat(const char*, void*);
-        int fr = f_stat("heretic1.wad", NULL);
-        printf("f_stat after Z_Init: heretic1.wad = %d\n", fr);
-    }
 
 #ifdef FEATURE_MULTIPLAYER
     //!
@@ -1377,7 +1363,7 @@ void D_DoomMain (void)
     // Find main IWAD file and load it.
     // Note: We search all supported WADs, but only DOOM-engine games will work.
     // Heretic, Hexen, and Strife require their own game-specific code.
-    iwadfile = D_FindIWAD(IWAD_MASK_DOOM | IWAD_MASK_HERETIC | IWAD_MASK_HEXEN | IWAD_MASK_STRIFE, &gamemission);
+    iwadfile = D_FindIWAD(IWAD_MASK_DOOM, &gamemission);
 
     // None found?
 

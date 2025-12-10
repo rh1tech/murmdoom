@@ -56,55 +56,15 @@ void DG_Init() {
     if (fr != FR_OK) {
         panic("Failed to mount SD card");
     }
-    printf("SD card mounted successfully\n");
     
     // Set current directory to root (required for relative paths)
-    fr = f_chdir("/");
-    if (fr != FR_OK) {
-        printf("Warning: f_chdir failed: %d\n", fr);
-    }
-    
-    // Test: list files in root directory
-    DIR dir;
-    FILINFO fno;
-    fr = f_opendir(&dir, "/");
-    if (fr == FR_OK) {
-        printf("Root directory contents:\n");
-        while (1) {
-            fr = f_readdir(&dir, &fno);
-            if (fr != FR_OK || fno.fname[0] == 0) break;
-            printf("  %s%s\n", fno.fname, (fno.fattrib & AM_DIR) ? "/" : "");
-        }
-        f_closedir(&dir);
-    } else {
-        printf("Failed to open root dir: %d\n", fr);
-    }
-    
-    // Test f_stat immediately after directory listing
-    fr = f_stat("/HERETIC1.WAD", &fno);
-    printf("f_stat test: /HERETIC1.WAD = %d\n", fr);
-    fr = f_stat("HERETIC1.WAD", &fno);
-    printf("f_stat test: HERETIC1.WAD = %d\n", fr);
-    fr = f_stat("/heretic1.wad", &fno);
-    printf("f_stat test: /heretic1.wad = %d\n", fr);
-    fr = f_stat("heretic1.wad", &fno);
-    printf("f_stat test: heretic1.wad = %d\n", fr);
+    f_chdir("/");
     
     // Initialize stdio wrapper for FatFS
     stdio_fatfs_init();
-    
-    // Test f_stat after stdio_fatfs_init
-    fr = f_stat("heretic1.wad", &fno);
-    printf("f_stat after stdio_fatfs_init: %d\n", fr);
 
     // Initialize PS/2 Keyboard
     ps2kbd_init();
-    
-    // Test f_stat after ps2kbd_init
-    fr = f_stat("heretic1.wad", &fno);
-    printf("f_stat after ps2kbd_init: %d\n", fr);
-    
-    printf("=== DG_Init complete ===\n");
 }
 
 void DG_DrawFrame() {
@@ -158,26 +118,13 @@ void I_Quit(void) {
 }
 
 byte *I_ZoneBase(int *size) {
-    FRESULT fr;
-    
-    printf("Before psram_malloc...\n");
-    fr = f_stat("heretic1.wad", NULL);
-    printf("f_stat before psram_malloc: %d\n", fr);
-    
     // 4MB PERM minus 512KB scratch = 3.5MB usable for zone + other allocations
     *size = 3 * 1024 * 1024; // 3MB PSRAM for zone
     void *ptr = psram_malloc(*size);
     
-    fr = f_stat("heretic1.wad", NULL);
-    printf("f_stat after psram_malloc: %d\n", fr);
-    
     if (!ptr) {
-        printf("Failed to allocate PSRAM for Zone (3MB), trying 2MB\n");
         *size = 2 * 1024 * 1024; // Try 2MB
         ptr = psram_malloc(*size);
-    }
-    if (ptr) {
-        printf("Zone memory allocated: %d bytes (%.2f MB)\n", *size, *size / (1024.0 * 1024.0));
     }
     return (byte *)ptr;
 }
