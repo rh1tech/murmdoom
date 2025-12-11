@@ -6,6 +6,24 @@ set(PICO_BOARD pico2 CACHE STRING "Pico board type")
 # Board configuration variant (M1, M2)
 set(BOARD_VARIANT "M1" CACHE STRING "Board variant: M1 or M2")
 
+# CPU overclock configuration (252, 378, 504 MHz)
+# 252 = no overclock (default), 378 = medium, 504 = high
+set(CPU_SPEED "252" CACHE STRING "CPU clock in MHz: 252, 378, 504")
+
+# PSRAM speed configuration (84, 100, 133, 166 MHz target)
+set(PSRAM_SPEED "133" CACHE STRING "PSRAM max frequency in MHz: 84, 100, 133, 166")
+
+# CPU voltage selection based on speed
+if(CPU_SPEED GREATER_EQUAL 504)
+    set(CPU_VOLTAGE "VREG_VOLTAGE_1_65")
+elseif(CPU_SPEED GREATER_EQUAL 378)
+    set(CPU_VOLTAGE "VREG_VOLTAGE_1_60")
+else()
+    set(CPU_VOLTAGE "VREG_VOLTAGE_1_50")
+endif()
+
+message(STATUS "Board: ${BOARD_VARIANT}, CPU: ${CPU_SPEED} MHz, PSRAM: ${PSRAM_SPEED} MHz, Voltage: ${CPU_VOLTAGE}")
+
 include(pico_sdk_import.cmake)
 
 # Import pico-extras for audio_i2s library
@@ -38,7 +56,10 @@ add_library(drivers
     drivers/psram_allocator.c
 )
 target_include_directories(drivers PUBLIC drivers)
-target_compile_definitions(drivers PRIVATE BOARD_${BOARD_VARIANT})
+target_compile_definitions(drivers PRIVATE
+    BOARD_${BOARD_VARIANT}
+    PSRAM_MAX_FREQ_MHZ=${PSRAM_SPEED}
+)
 target_link_libraries(drivers pico_stdlib hardware_dma hardware_pio hardware_spi)
 
 # Doomgeneric sources
@@ -95,6 +116,9 @@ target_include_directories(murmdoom PRIVATE
 
 target_compile_definitions(murmdoom PRIVATE
     BOARD_${BOARD_VARIANT}
+    CPU_CLOCK_MHZ=${CPU_SPEED}
+    CPU_VOLTAGE=${CPU_VOLTAGE}
+    PSRAM_MAX_FREQ_MHZ=${PSRAM_SPEED}
     CMAP256
     DOOMGENERIC_RESX=320
     DOOMGENERIC_RESY=240

@@ -2,6 +2,7 @@
 #define BOARD_CONFIG_H
 
 #include "hardware/structs/sysinfo.h"
+#include "hardware/vreg.h"
 
 /*
  * Board Configuration Variants:
@@ -24,11 +25,31 @@
  *   SD:   CLK=6, CMD=7, DAT0=4, DAT3=5
  *   PS/2: CLK=2, DATA=3
  *   I2S:  DATA=9, CLK=10, LRCK=11
+ *
+ * CPU/PSRAM Speed (set via CMake -DCPU_SPEED=xxx -DPSRAM_SPEED=xxx):
+ *   252 MHz - no overclock (default for stable operation)
+ *   378 MHz - medium overclock
+ *   504 MHz - high overclock
  */
 
 // Default to M1 if no config specified
 #if !defined(BOARD_M1) && !defined(BOARD_M2)
 #define BOARD_M1
+#endif
+
+//=============================================================================
+// CPU/PSRAM Speed Defaults (can be overridden via CMake)
+//=============================================================================
+#ifndef CPU_CLOCK_MHZ
+#define CPU_CLOCK_MHZ 252
+#endif
+
+#ifndef CPU_VOLTAGE
+#define CPU_VOLTAGE VREG_VOLTAGE_1_50
+#endif
+
+#ifndef PSRAM_MAX_FREQ_MHZ
+#define PSRAM_MAX_FREQ_MHZ 133
 #endif
 
 //=============================================================================
