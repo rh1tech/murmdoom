@@ -20,7 +20,8 @@
 
 #define MAX_REPORT 4
 
-// Per-instance HID info
+// Per-device, per-instance HID info for generic report parsing
+// Index by dev_addr * CFG_TUH_HID + instance (simplified indexing)
 static struct {
     uint8_t report_count;
     tuh_hid_report_info_t report_info[MAX_REPORT];

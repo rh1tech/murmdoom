@@ -64,11 +64,16 @@ extern "C" {
 // Size of buffer for receiving and sending control requests
 #define CFG_TUH_ENUMERATION_BUFSIZE 256
 
+// Max number of devices (hub counts as 1, then each device behind hub)
+// Need at least: 1 hub + 2 HID devices = 3, use 5 for safety
+#define CFG_TUH_DEVICE_MAX 5
+
 // Number of hub devices
 #define CFG_TUH_HUB 1
 
-// Max number of HID devices (supports multiple keyboards/mice)
-#define CFG_TUH_HID 4
+// Max number of HID interfaces (each device can have multiple interfaces)
+// Keyboard = 1 HID, some mice = 2 HID (boot + extra features)
+#define CFG_TUH_HID 8
 
 // CDC host (disable - we don't need to connect to CDC devices)
 #define CFG_TUH_CDC 0
