@@ -1543,6 +1543,13 @@ static void I_OPL_PlaySong(void *handle, boolean looping)
     // Allocate track data.
 
     tracks = malloc(MIDI_NumTracks(file) * sizeof(opl_track_data_t));
+    
+    if (tracks == NULL)
+    {
+        // Memory allocation failed - skip music playback
+        num_tracks = 0;
+        return;
+    }
 
     num_tracks = MIDI_NumTracks(file);
     running_tracks = num_tracks;

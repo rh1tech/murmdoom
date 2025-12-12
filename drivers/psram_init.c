@@ -5,6 +5,11 @@
 #include "hardware/gpio.h"
 #include "pico/stdlib.h"
 
+// PSRAM max frequency from build config (default 133 MHz)
+#ifndef PSRAM_MAX_FREQ_MHZ
+#define PSRAM_MAX_FREQ_MHZ 133
+#endif
+
 void __no_inline_not_in_flash_func(psram_init)(uint cs_pin) {
     const int clock_hz = clock_get_hz(clk_sys); 
 
@@ -20,7 +25,7 @@ void __no_inline_not_in_flash_func(psram_init)(uint cs_pin) {
     while (qmi_hw->direct_csr & QMI_DIRECT_CSR_BUSY_BITS);
 
 
-    const int max_psram_freq = 133000000; 
+    const int max_psram_freq = PSRAM_MAX_FREQ_MHZ * 1000000; 
     
     int divisor = (clock_hz + max_psram_freq - 1) / max_psram_freq;
     if (divisor == 1 && clock_hz > 100000000) {
