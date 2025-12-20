@@ -567,7 +567,10 @@ extern struct {
     uint8_t a;
 } colors[256];
 
+// Only available when USB CDC stdio is enabled (not in USB HID host builds).
+#if PICO_STDIO_USB
 #include "pico/stdio_usb.h"
+#endif
 
 // External stdio init for FatFS
 extern void stdio_fatfs_init(void);
