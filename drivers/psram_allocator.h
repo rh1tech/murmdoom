@@ -3,6 +3,12 @@
 
 #include <stddef.h>
 
+// Total external PSRAM size (bytes). Keep in sync with the hardware used.
+// Used by UI/status display and allocator partitioning.
+#ifndef MURMDOOM_PSRAM_SIZE_BYTES
+#define MURMDOOM_PSRAM_SIZE_BYTES (8u * 1024u * 1024u)
+#endif
+
 void *psram_malloc(size_t size);
 void *psram_realloc(void *ptr, size_t size);
 void psram_free(void *ptr);

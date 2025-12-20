@@ -7,6 +7,7 @@
 #include "hardware/gpio.h"
 #include "hardware/spi.h"
 #include "hardware/watchdog.h"
+#include "hardware/clocks.h"
 #include "HDMI.h"
 #include "psram_init.h"
 #include "psram_allocator.h"
@@ -24,6 +25,7 @@
 
 static void draw_text_5x7(int x, int y, const char *text, pixel_t color);
 static void fill_rect(int x, int y, int w, int h, pixel_t color);
+static int text_width_5x7(const char *text, int scale);
 
 static void fill_rect(int x, int y, int w, int h, pixel_t color) {
     if (w <= 0 || h <= 0) return;
@@ -86,13 +88,62 @@ static void render_iwad_menu(const char *const *available,
     }
 }
 
+typedef struct {
+    const char *filename;
+    const char *label;
+} iwad_entry_t;
+
+static int max_label_width_5x7(const iwad_entry_t *const *entries, int entry_count, int scale) {
+    int max_w = 0;
+    for (int i = 0; i < entry_count; ++i) {
+        const char *label = entries[i]->label;
+        int w = text_width_5x7(label, scale);
+        if (w > max_w) max_w = w;
+    }
+    return max_w;
+}
+
+static void render_iwad_menu_entries(const iwad_entry_t *const *available,
+                                     int available_count,
+                                     int selected,
+                                     int menu_x,
+                                     int menu_y,
+                                     int line_h,
+                                     int menu_w,
+                                     int menu_h,
+                                     int highlight_h) {
+    // Clear menu area.
+    fill_rect(menu_x - 2, menu_y - 2, menu_w + 4, menu_h + 4, 0);
+
+    if (available_count <= 0) {
+        draw_text_5x7(menu_x, menu_y, "NONE", 1);
+        return;
+    }
+
+    for (int i = 0; i < available_count; ++i) {
+        const int y = menu_y + i * line_h;
+        const char *disp = available[i]->label;
+
+        if (i == selected) {
+            fill_rect(menu_x - 2, y - 1, menu_w + 4, highlight_h, 1);
+            draw_text_5x7(menu_x, y, disp, 0);
+        } else {
+            draw_text_5x7(menu_x, y, disp, 1);
+        }
+    }
+}
+
 static const uint8_t *glyph_5x7(char ch) {
     // 5x7 glyphs, bits are MSB->LSB across 5 columns.
     // Only implements ASCII needed for the start screen UI.
     static const uint8_t glyph_space[7] = {0, 0, 0, 0, 0, 0, 0};
     static const uint8_t glyph_dot[7] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x0C, 0x0C};
+    static const uint8_t glyph_comma[7] = {0x00, 0x00, 0x00, 0x00, 0x0C, 0x0C, 0x08};
     static const uint8_t glyph_colon[7] = {0x00, 0x0C, 0x0C, 0x00, 0x0C, 0x0C, 0x00};
     static const uint8_t glyph_hyphen[7] = {0x00, 0x00, 0x00, 0x1F, 0x00, 0x00, 0x00};
+    static const uint8_t glyph_lparen[7] = {0x04, 0x08, 0x08, 0x08, 0x08, 0x08, 0x04};
+    static const uint8_t glyph_rparen[7] = {0x04, 0x02, 0x02, 0x02, 0x02, 0x02, 0x04};
+    static const uint8_t glyph_slash[7] = {0x01, 0x02, 0x04, 0x08, 0x10, 0x00, 0x00};
 
     static const uint8_t glyph_0[7] = {0x0E, 0x11, 0x13, 0x15, 0x19, 0x11, 0x0E};
     static const uint8_t glyph_1[7] = {0x04, 0x0C, 0x04, 0x04, 0x04, 0x04, 0x0E};
@@ -163,8 +214,12 @@ static const uint8_t *glyph_5x7(char ch) {
     switch (c) {
         case ' ': return glyph_space;
         case '.': return glyph_dot;
+        case ',': return glyph_comma;
         case ':': return glyph_colon;
         case '-': return glyph_hyphen;
+        case '(': return glyph_lparen;
+        case ')': return glyph_rparen;
+        case '/': return glyph_slash;
 
         case '0': return glyph_0;
         case '1': return glyph_1;
@@ -577,15 +632,30 @@ void DG_StartScreen(void) {
     for (int i = 0; i < 16; ++i) {
         graphics_set_palette(2 + i, doom_bg_pal[i]);
     }
+
+    // Title highlight: 20% brighter than the brightest demo red.
+    {
+        const uint32_t base = doom_bg_pal[15];
+        uint32_t r = (base >> 16) & 0xFF;
+        uint32_t g = (base >> 8) & 0xFF;
+        uint32_t b = base & 0xFF;
+        r = (r * 6) / 5;
+        g = (g * 6) / 5;
+        b = (b * 6) / 5;
+        if (r > 255) r = 255;
+        if (g > 255) g = 255;
+        if (b > 255) b = 255;
+        graphics_set_palette(18, (r << 16) | (g << 8) | b);
+    }
     memset(DG_ScreenBuffer, 0, DOOMGENERIC_RESX * DOOMGENERIC_RESY * sizeof(pixel_t));
 
     // Draw available Doom IWADs (only Doom, not Heretic/Hexen/etc).
-    static const char *const doom_iwads[] = {
-        "doom2.wad",
-        "plutonia.wad",
-        "tnt.wad",
-        "doom.wad",
-        "doom1.wad",
+    static const iwad_entry_t doom_iwads[] = {
+        {"doom2.wad", "DOOM II (doom2.wad)"},
+        {"plutonia.wad", "PLUTONIA (plutonia.wad)"},
+        {"tnt.wad", "TNT (tnt.wad)"},
+        {"doom.wad", "DOOM (doom.wad)"},
+        {"doom1.wad", "DOOM SHAREWARE (doom1.wad)"},
     };
 
     const int panel_x = 24;
@@ -593,20 +663,20 @@ void DG_StartScreen(void) {
     const int panel_w = DOOMGENERIC_RESX - 48;
     const int panel_h = DOOMGENERIC_RESY - 48;
 
-    const int menu_x = panel_x + 16;
+    // Keep left margin small so long status text fits.
+    const int menu_x = panel_x + 4;
     const int menu_y = panel_y + 56;
     const int line_h = 10;
-    const int menu_w = 6 * 14; // enough for "PLUTONIA.WAD" + padding
     const int menu_h = (int)(sizeof(doom_iwads) / sizeof(doom_iwads[0])) * line_h;
     const int highlight_h = 9;
 
     // Build list of available IWADs.
-    const char *available[sizeof(doom_iwads) / sizeof(doom_iwads[0])];
+    const iwad_entry_t *available[sizeof(doom_iwads) / sizeof(doom_iwads[0])];
     int available_count = 0;
     for (size_t i = 0; i < sizeof(doom_iwads) / sizeof(doom_iwads[0]); ++i) {
         FILINFO info;
-        if (f_stat(doom_iwads[i], &info) == FR_OK) {
-            available[available_count++] = doom_iwads[i];
+        if (f_stat(doom_iwads[i].filename, &info) == FR_OK) {
+            available[available_count++] = &doom_iwads[i];
         }
     }
 
@@ -616,8 +686,9 @@ void DG_StartScreen(void) {
 #define MURMDOOM_VERSION "?"
 #endif
 
-    char title[96];
-    snprintf(title, sizeof(title), "MurmDOOM by Mikhail Matveev v%s", MURMDOOM_VERSION);
+    const char *title_left = "MurmDOOM";
+    char title_right[96];
+    snprintf(title_right, sizeof(title_right), " by Mikhail Matveev v%s", MURMDOOM_VERSION);
 
     // Print WAD scan after ~3s or as soon as USB CDC is connected.
     // If the first print happens while disconnected (common if the host opens the monitor late),
@@ -628,17 +699,58 @@ void DG_StartScreen(void) {
 
     // Draw static UI once; animate only outside the panel to avoid overwriting text.
     const int title_scale = 1;
-    const int title_w = text_width_5x7(title, title_scale);
+    const int title_left_w = text_width_5x7(title_left, title_scale);
+    const int title_right_w = text_width_5x7(title_right, title_scale);
+    const int title_w = title_left_w + title_right_w;
     const int title_x = (DOOMGENERIC_RESX - title_w) / 2;
+
+    // Status lines
+#ifndef DBOARD_VARIANT
+#if defined(BOARD_M2)
+#define DBOARD_VARIANT "M2"
+#else
+#define DBOARD_VARIANT "M1"
+#endif
+#endif
+#ifndef DPSRAM_SPEED
+#define DPSRAM_SPEED PSRAM_MAX_FREQ_MHZ
+#endif
+
+#ifndef DCPU_SPEED
+#define DCPU_SPEED CPU_CLOCK_MHZ
+#endif
+
+    const char *cfg = DBOARD_VARIANT;
+    // Prefer configured build values for display.
+    const uint32_t cpu_mhz = (uint32_t)DCPU_SPEED;
+    const uint32_t psram_cs = get_psram_pin();
+    char status1[96];
+    char status2[96];
+    snprintf(status1, sizeof(status1), "Up/Down: select, Enter: confirm");
+    snprintf(status2, sizeof(status2), "%s, FREQ: %lu MHz, PSRAM: %d MHz, CS: %lu",
+             cfg,
+             (unsigned long)cpu_mhz,
+             (int)DPSRAM_SPEED,
+             (unsigned long)psram_cs);
+    const char *status3 = "https://github.com/rh1tech/murmdoom";
+
+    // Compute menu width from available labels.
+    const int menu_w = (available_count > 0 ? max_label_width_5x7(available, available_count, 1) : (6 * 4));
 
     draw_animated_background_border(to_ms_since_boot(get_absolute_time()), panel_x, panel_y, panel_w, panel_h);
     fill_rect(panel_x, panel_y, panel_w, panel_h, 0);
-    draw_text_5x7_scaled(title_x, panel_y + 10, title, 1, title_scale, false);
+    // Highlight "MurmDOOM" with red background and black text.
+    const int title_y = panel_y + 10;
+    fill_rect(title_x - 2, title_y - 2, title_left_w + 4, 7 * title_scale + 4, 18);
+    draw_text_5x7_scaled(title_x, title_y, title_left, 0, title_scale, false);
+    draw_text_5x7_scaled(title_x + title_left_w, title_y, title_right, 1, title_scale, false);
 
-    draw_text_5x7(menu_x, menu_y - 14, "DOOM IWADS:", 1);
-    draw_text_5x7(menu_x, panel_y + panel_h - 32, "UP/DOWN TO SELECT", 1);
-    draw_text_5x7(menu_x, panel_y + panel_h - 22, "PRESS ENTER", 1);
-    render_iwad_menu(available, available_count, selected, menu_x, menu_y, line_h, menu_w, menu_h, highlight_h);
+    draw_text_5x7(menu_x, menu_y - 14, "Select WAD:", 1);
+    const int bottom_y0 = panel_y + panel_h - 32;
+    draw_text_5x7(menu_x, bottom_y0 + 0, status1, 1);
+    draw_text_5x7(menu_x, bottom_y0 + 10, status2, 1);
+    draw_text_5x7(menu_x, bottom_y0 + 20, status3, 1);
+    render_iwad_menu_entries(available, available_count, selected, menu_x, menu_y, line_h, menu_w, menu_h, highlight_h);
 
     int prev_selected = selected;
 
@@ -648,7 +760,7 @@ void DG_StartScreen(void) {
         draw_animated_background_border(now_ms, panel_x, panel_y, panel_w, panel_h);
 
         if (prev_selected != selected) {
-            render_iwad_menu(available, available_count, selected, menu_x, menu_y, line_h, menu_w, menu_h, highlight_h);
+            render_iwad_menu_entries(available, available_count, selected, menu_x, menu_y, line_h, menu_w, menu_h, highlight_h);
             prev_selected = selected;
         }
 
@@ -677,7 +789,7 @@ void DG_StartScreen(void) {
                     static char *new_argv[4];
                     new_argv[0] = (char *)"doom";
                     new_argv[1] = (char *)"-iwad";
-                    new_argv[2] = (char *)available[selected];
+                    new_argv[2] = (char *)available[selected]->filename;
                     new_argv[3] = NULL;
                     myargc = 3;
                     myargv = new_argv;
