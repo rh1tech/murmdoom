@@ -16,6 +16,7 @@
 #include "ps2mouse_wrapper.h"
 #include "usbhid_wrapper.h"
 #include "murmdoom_log.h"
+#include "doomkeys.h"
 #include <stdio.h>
 #include <stdarg.h>
 #include <string.h>
@@ -78,6 +79,24 @@ void DG_Init() {
 
     // Initialize USB HID (keyboard/mouse) if enabled
     usbhid_wrapper_init();
+}
+
+void DG_StartScreen(void) {
+    // Solid gray background using palette index 0.
+    graphics_set_palette(0, 0x808080);
+    memset(DG_ScreenBuffer, 0, DOOMGENERIC_RESX * DOOMGENERIC_RESY * sizeof(pixel_t));
+
+    // Wait for Enter.
+    while (true) {
+        int pressed = 0;
+        unsigned char key = 0;
+        while (DG_GetKey(&pressed, &key)) {
+            if (pressed && key == KEY_ENTER) {
+                return;
+            }
+        }
+        sleep_ms(10);
+    }
 }
 
 void DG_DrawFrame() {
