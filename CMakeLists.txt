@@ -38,6 +38,11 @@ project(murmdoom C CXX ASM)
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 17)
 
+# Inject version.txt as a compile-time string.
+file(READ "${CMAKE_CURRENT_LIST_DIR}/version.txt" MURMDOOM_VERSION_RAW)
+string(STRIP "${MURMDOOM_VERSION_RAW}" MURMDOOM_VERSION_RAW)
+string(REGEX REPLACE "[ \t]+" "." MURMDOOM_VERSION "${MURMDOOM_VERSION_RAW}")
+
 pico_sdk_init()
 
 # Initialize pico-extras if available
@@ -157,6 +162,7 @@ target_compile_definitions(murmdoom PRIVATE
     EMU8950_SLOT_RENDER=1
     EMU8950_NO_RATECONV=1
     PICO_ON_DEVICE=1
+    MURMDOOM_VERSION="${MURMDOOM_VERSION}"
 )
 
 if(MURMDOOM_QUIET)

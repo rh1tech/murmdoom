@@ -86,10 +86,9 @@ static void render_iwad_menu(const char *const *available,
     }
 }
 
-static void draw_char_5x7(int x, int y, char ch, pixel_t color) {
+static const uint8_t *glyph_5x7(char ch) {
     // 5x7 glyphs, bits are MSB->LSB across 5 columns.
-    // Only implements characters needed for the start screen text.
-    const uint8_t *rows = NULL;
+    // Only implements ASCII needed for the start screen UI.
     static const uint8_t glyph_space[7] = {0, 0, 0, 0, 0, 0, 0};
     static const uint8_t glyph_dot[7] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x0C, 0x0C};
     static const uint8_t glyph_colon[7] = {0x00, 0x0C, 0x0C, 0x00, 0x0C, 0x0C, 0x00};
@@ -161,81 +160,83 @@ static void draw_char_5x7(int x, int y, char ch, pixel_t color) {
     static const uint8_t glyph_Z[7] = {0x1F, 0x02, 0x04, 0x08, 0x10, 0x10, 0x1F};
 
     int c = (unsigned char)ch;
-
     switch (c) {
-        case ' ': rows = glyph_space; break;
-        case '.': rows = glyph_dot; break;
-        case ':': rows = glyph_colon; break;
-        case '-': rows = glyph_hyphen; break;
+        case ' ': return glyph_space;
+        case '.': return glyph_dot;
+        case ':': return glyph_colon;
+        case '-': return glyph_hyphen;
 
-        case '0': rows = glyph_0; break;
-        case '1': rows = glyph_1; break;
-        case '2': rows = glyph_2; break;
-        case '3': rows = glyph_3; break;
-        case '4': rows = glyph_4; break;
-        case '5': rows = glyph_5; break;
-        case '6': rows = glyph_6; break;
-        case '7': rows = glyph_7; break;
-        case '8': rows = glyph_8; break;
-        case '9': rows = glyph_9; break;
+        case '0': return glyph_0;
+        case '1': return glyph_1;
+        case '2': return glyph_2;
+        case '3': return glyph_3;
+        case '4': return glyph_4;
+        case '5': return glyph_5;
+        case '6': return glyph_6;
+        case '7': return glyph_7;
+        case '8': return glyph_8;
+        case '9': return glyph_9;
 
-        case 'a': rows = glyph_a; break;
-        case 'b': rows = glyph_b; break;
-        case 'c': rows = glyph_c; break;
-        case 'd': rows = glyph_d; break;
-        case 'e': rows = glyph_e; break;
-        case 'f': rows = glyph_f; break;
-        case 'g': rows = glyph_g; break;
-        case 'h': rows = glyph_h; break;
-        case 'i': rows = glyph_i; break;
-        case 'j': rows = glyph_j; break;
-        case 'k': rows = glyph_k; break;
-        case 'l': rows = glyph_l; break;
-        case 'm': rows = glyph_m; break;
-        case 'n': rows = glyph_n; break;
-        case 'o': rows = glyph_o; break;
-        case 'p': rows = glyph_p; break;
-        case 'q': rows = glyph_q; break;
-        case 'r': rows = glyph_r; break;
-        case 's': rows = glyph_s; break;
-        case 't': rows = glyph_t; break;
-        case 'u': rows = glyph_u; break;
-        case 'v': rows = glyph_v; break;
-        case 'w': rows = glyph_w; break;
-        case 'x': rows = glyph_x; break;
-        case 'y': rows = glyph_y; break;
-        case 'z': rows = glyph_z; break;
+        case 'a': return glyph_a;
+        case 'b': return glyph_b;
+        case 'c': return glyph_c;
+        case 'd': return glyph_d;
+        case 'e': return glyph_e;
+        case 'f': return glyph_f;
+        case 'g': return glyph_g;
+        case 'h': return glyph_h;
+        case 'i': return glyph_i;
+        case 'j': return glyph_j;
+        case 'k': return glyph_k;
+        case 'l': return glyph_l;
+        case 'm': return glyph_m;
+        case 'n': return glyph_n;
+        case 'o': return glyph_o;
+        case 'p': return glyph_p;
+        case 'q': return glyph_q;
+        case 'r': return glyph_r;
+        case 's': return glyph_s;
+        case 't': return glyph_t;
+        case 'u': return glyph_u;
+        case 'v': return glyph_v;
+        case 'w': return glyph_w;
+        case 'x': return glyph_x;
+        case 'y': return glyph_y;
+        case 'z': return glyph_z;
 
-        case 'A': rows = glyph_A; break;
-        case 'B': rows = glyph_B; break;
-        case 'C': rows = glyph_C; break;
-        case 'D': rows = glyph_D; break;
-        case 'E': rows = glyph_E; break;
-        case 'F': rows = glyph_F; break;
-        case 'G': rows = glyph_G; break;
-        case 'H': rows = glyph_H; break;
-        case 'I': rows = glyph_I; break;
-        case 'J': rows = glyph_J; break;
-        case 'K': rows = glyph_K; break;
-        case 'L': rows = glyph_L; break;
-        case 'M': rows = glyph_M; break;
-        case 'N': rows = glyph_N; break;
-        case 'O': rows = glyph_O; break;
-        case 'P': rows = glyph_P; break;
-        case 'Q': rows = glyph_Q; break;
-        case 'R': rows = glyph_R; break;
-        case 'S': rows = glyph_S; break;
-        case 'T': rows = glyph_T; break;
-        case 'U': rows = glyph_U; break;
-        case 'V': rows = glyph_V; break;
-        case 'W': rows = glyph_W; break;
-        case 'X': rows = glyph_X; break;
-        case 'Y': rows = glyph_Y; break;
-        case 'Z': rows = glyph_Z; break;
+        case 'A': return glyph_A;
+        case 'B': return glyph_B;
+        case 'C': return glyph_C;
+        case 'D': return glyph_D;
+        case 'E': return glyph_E;
+        case 'F': return glyph_F;
+        case 'G': return glyph_G;
+        case 'H': return glyph_H;
+        case 'I': return glyph_I;
+        case 'J': return glyph_J;
+        case 'K': return glyph_K;
+        case 'L': return glyph_L;
+        case 'M': return glyph_M;
+        case 'N': return glyph_N;
+        case 'O': return glyph_O;
+        case 'P': return glyph_P;
+        case 'Q': return glyph_Q;
+        case 'R': return glyph_R;
+        case 'S': return glyph_S;
+        case 'T': return glyph_T;
+        case 'U': return glyph_U;
+        case 'V': return glyph_V;
+        case 'W': return glyph_W;
+        case 'X': return glyph_X;
+        case 'Y': return glyph_Y;
+        case 'Z': return glyph_Z;
 
-        default: rows = glyph_space; break;
+        default: return glyph_space;
     }
+}
 
+static void draw_char_5x7(int x, int y, char ch, pixel_t color) {
+    const uint8_t *rows = glyph_5x7(ch);
     for (int row = 0; row < 7; ++row) {
         int yy = y + row;
         if (yy < 0 || yy >= DOOMGENERIC_RESY) continue;
@@ -250,12 +251,120 @@ static void draw_char_5x7(int x, int y, char ch, pixel_t color) {
     }
 }
 
+static void draw_char_5x7_scaled(int x, int y, char ch, pixel_t color, int scale, bool bold) {
+    if (scale <= 1) {
+        draw_char_5x7(x, y, ch, color);
+        if (bold) draw_char_5x7(x + 1, y, ch, color);
+        return;
+    }
+
+    const uint8_t *rows = glyph_5x7(ch);
+    for (int row = 0; row < 7; ++row) {
+        uint8_t bits = rows[row];
+        for (int col = 0; col < 5; ++col) {
+            if (!(bits & (1u << (4 - col)))) continue;
+            const int px = x + col * scale;
+            const int py = y + row * scale;
+            fill_rect(px, py, scale, scale, color);
+            if (bold) fill_rect(px + 1, py, scale, scale, color);
+        }
+    }
+}
+
 static void draw_text_5x7(int x, int y, const char *text, pixel_t color) {
     // 5px glyph + 1px spacing
     const int advance = 6;
     for (const char *p = text; *p; ++p) {
         draw_char_5x7(x, y, *p, color);
         x += advance;
+    }
+}
+
+static void draw_text_5x7_scaled(int x, int y, const char *text, pixel_t color, int scale, bool bold) {
+    const int advance = 6 * (scale <= 0 ? 1 : scale);
+    if (scale <= 0) scale = 1;
+    for (const char *p = text; *p; ++p) {
+        draw_char_5x7_scaled(x, y, *p, color, scale, bold);
+        x += advance;
+    }
+}
+
+static int text_width_5x7(const char *text, int scale) {
+    if (scale <= 0) scale = 1;
+    int n = 0;
+    for (const char *p = text; *p; ++p) n++;
+    return n * 6 * scale;
+}
+
+static void draw_animated_background(uint32_t t_ms) {
+    const int t = (int)(t_ms / 80);
+    for (int y = 0; y < DOOMGENERIC_RESY; ++y) {
+        for (int x = 0; x < DOOMGENERIC_RESX; ++x) {
+            // Blocky, clearly animated pattern (still dark Doom-ish palette).
+            const int bx = (x >> 3);
+            const int by = (y >> 3);
+            uint8_t v = (uint8_t)((bx + by + t) & 0x0F);
+            v ^= (uint8_t)(((bx << 1) ^ (by + (t >> 1))) & 0x07);
+            DG_ScreenBuffer[y * DOOMGENERIC_RESX + x] = (pixel_t)(2 + (v & 0x0F));
+        }
+    }
+}
+
+static void draw_animated_background_border(uint32_t t_ms,
+                                           int panel_x,
+                                           int panel_y,
+                                           int panel_w,
+                                           int panel_h) {
+    const int t = (int)(t_ms / 80);
+
+    if (panel_x < 0) panel_x = 0;
+    if (panel_y < 0) panel_y = 0;
+    if (panel_w < 0) panel_w = 0;
+    if (panel_h < 0) panel_h = 0;
+    if (panel_x + panel_w > DOOMGENERIC_RESX) panel_w = DOOMGENERIC_RESX - panel_x;
+    if (panel_y + panel_h > DOOMGENERIC_RESY) panel_h = DOOMGENERIC_RESY - panel_y;
+
+    const int panel_x2 = panel_x + panel_w;
+    const int panel_y2 = panel_y + panel_h;
+
+    // Top strip.
+    for (int y = 0; y < panel_y; ++y) {
+        for (int x = 0; x < DOOMGENERIC_RESX; ++x) {
+            const int bx = (x >> 3);
+            const int by = (y >> 3);
+            uint8_t v = (uint8_t)((bx + by + t) & 0x0F);
+            v ^= (uint8_t)(((bx << 1) ^ (by + (t >> 1))) & 0x07);
+            DG_ScreenBuffer[y * DOOMGENERIC_RESX + x] = (pixel_t)(2 + (v & 0x0F));
+        }
+    }
+
+    // Bottom strip.
+    for (int y = panel_y2; y < DOOMGENERIC_RESY; ++y) {
+        for (int x = 0; x < DOOMGENERIC_RESX; ++x) {
+            const int bx = (x >> 3);
+            const int by = (y >> 3);
+            uint8_t v = (uint8_t)((bx + by + t) & 0x0F);
+            v ^= (uint8_t)(((bx << 1) ^ (by + (t >> 1))) & 0x07);
+            DG_ScreenBuffer[y * DOOMGENERIC_RESX + x] = (pixel_t)(2 + (v & 0x0F));
+        }
+    }
+
+    // Left/right strips.
+    for (int y = panel_y; y < panel_y2; ++y) {
+        for (int x = 0; x < panel_x; ++x) {
+            const int bx = (x >> 3);
+            const int by = (y >> 3);
+            uint8_t v = (uint8_t)((bx + by + t) & 0x0F);
+            v ^= (uint8_t)(((bx << 1) ^ (by + (t >> 1))) & 0x07);
+            DG_ScreenBuffer[y * DOOMGENERIC_RESX + x] = (pixel_t)(2 + (v & 0x0F));
+        }
+        for (int x = panel_x2; x < DOOMGENERIC_RESX; ++x) {
+            const int bx = (x >> 3);
+            const int by = (y >> 3);
+            uint8_t v = (uint8_t)((bx + by + t) & 0x0F);
+            v ^= (uint8_t)(((bx << 1) ^ (by + (t >> 1))) & 0x07);
+            DG_ScreenBuffer[y * DOOMGENERIC_RESX + x] = (pixel_t)(2 + (v & 0x0F));
+        }
     }
 }
 
@@ -457,6 +566,17 @@ void DG_StartScreen(void) {
     // Solid black background using palette index 0.
     graphics_set_palette(0, 0x000000);
     graphics_set_palette(1, 0xFFFFFF);
+
+    // Background palette (2..17): dark Doom-ish reds/browns.
+    static const uint32_t doom_bg_pal[16] = {
+        0x050100, 0x080200, 0x0B0301, 0x0E0401,
+        0x120501, 0x160602, 0x1A0702, 0x1E0803,
+        0x220903, 0x260A04, 0x2A0B04, 0x2E0C05,
+        0x330D05, 0x380E06, 0x3D0F06, 0x421007,
+    };
+    for (int i = 0; i < 16; ++i) {
+        graphics_set_palette(2 + i, doom_bg_pal[i]);
+    }
     memset(DG_ScreenBuffer, 0, DOOMGENERIC_RESX * DOOMGENERIC_RESY * sizeof(pixel_t));
 
     // Draw available Doom IWADs (only Doom, not Heretic/Hexen/etc).
@@ -468,15 +588,17 @@ void DG_StartScreen(void) {
         "doom1.wad",
     };
 
-    const int menu_x = 8;
-    const int menu_y = 32;
+    const int panel_x = 24;
+    const int panel_y = 24;
+    const int panel_w = DOOMGENERIC_RESX - 48;
+    const int panel_h = DOOMGENERIC_RESY - 48;
+
+    const int menu_x = panel_x + 16;
+    const int menu_y = panel_y + 56;
     const int line_h = 10;
     const int menu_w = 6 * 14; // enough for "PLUTONIA.WAD" + padding
     const int menu_h = (int)(sizeof(doom_iwads) / sizeof(doom_iwads[0])) * line_h;
     const int highlight_h = 9;
-
-    draw_text_5x7(menu_x, 16, "DOOM IWADS:", 1);
-    draw_text_5x7(menu_x, DOOMGENERIC_RESY - 16, "PRESS ENTER", 1);
 
     // Build list of available IWADs.
     const char *available[sizeof(doom_iwads) / sizeof(doom_iwads[0])];
@@ -489,7 +611,13 @@ void DG_StartScreen(void) {
     }
 
     int selected = 0;
-    render_iwad_menu(available, available_count, selected, menu_x, menu_y, line_h, menu_w, menu_h, highlight_h);
+
+#ifndef MURMDOOM_VERSION
+#define MURMDOOM_VERSION "?"
+#endif
+
+    char title[96];
+    snprintf(title, sizeof(title), "MurmDOOM by Mikhail Matveev v%s", MURMDOOM_VERSION);
 
     // Print WAD scan after ~3s or as soon as USB CDC is connected.
     // If the first print happens while disconnected (common if the host opens the monitor late),
@@ -498,8 +626,32 @@ void DG_StartScreen(void) {
     bool printed = false;
     bool printed_while_disconnected = false;
 
+    // Draw static UI once; animate only outside the panel to avoid overwriting text.
+    const int title_scale = 1;
+    const int title_w = text_width_5x7(title, title_scale);
+    const int title_x = (DOOMGENERIC_RESX - title_w) / 2;
+
+    draw_animated_background_border(to_ms_since_boot(get_absolute_time()), panel_x, panel_y, panel_w, panel_h);
+    fill_rect(panel_x, panel_y, panel_w, panel_h, 0);
+    draw_text_5x7_scaled(title_x, panel_y + 10, title, 1, title_scale, false);
+
+    draw_text_5x7(menu_x, menu_y - 14, "DOOM IWADS:", 1);
+    draw_text_5x7(menu_x, panel_y + panel_h - 32, "UP/DOWN TO SELECT", 1);
+    draw_text_5x7(menu_x, panel_y + panel_h - 22, "PRESS ENTER", 1);
+    render_iwad_menu(available, available_count, selected, menu_x, menu_y, line_h, menu_w, menu_h, highlight_h);
+
+    int prev_selected = selected;
+
     // Wait for Enter.
     while (true) {
+        const uint32_t now_ms = to_ms_since_boot(get_absolute_time());
+        draw_animated_background_border(now_ms, panel_x, panel_y, panel_w, panel_h);
+
+        if (prev_selected != selected) {
+            render_iwad_menu(available, available_count, selected, menu_x, menu_y, line_h, menu_w, menu_h, highlight_h);
+            prev_selected = selected;
+        }
+
         bool usb_connected = true;
 #if PICO_STDIO_USB
         usb_connected = stdio_usb_connected();
@@ -537,13 +689,11 @@ void DG_StartScreen(void) {
 
             if (key == KEY_UPARROW || key == 'w' || key == 'W') {
                 selected = (selected - 1 + available_count) % available_count;
-                render_iwad_menu(available, available_count, selected, menu_x, menu_y, line_h, menu_w, menu_h, highlight_h);
             } else if (key == KEY_DOWNARROW || key == 's' || key == 'S') {
                 selected = (selected + 1) % available_count;
-                render_iwad_menu(available, available_count, selected, menu_x, menu_y, line_h, menu_w, menu_h, highlight_h);
             }
         }
-        sleep_ms(10);
+        sleep_ms(33);
     }
 }
 
