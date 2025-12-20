@@ -17,9 +17,74 @@
 #include "usbhid_wrapper.h"
 #include "murmdoom_log.h"
 #include "doomkeys.h"
+#include "m_argv.h"
 #include <stdio.h>
 #include <stdarg.h>
 #include <string.h>
+
+static void draw_text_5x7(int x, int y, const char *text, pixel_t color);
+static void fill_rect(int x, int y, int w, int h, pixel_t color);
+
+static void fill_rect(int x, int y, int w, int h, pixel_t color) {
+    if (w <= 0 || h <= 0) return;
+    if (x < 0) {
+        w += x;
+        x = 0;
+    }
+    if (y < 0) {
+        h += y;
+        y = 0;
+    }
+    if (x + w > DOOMGENERIC_RESX) w = DOOMGENERIC_RESX - x;
+    if (y + h > DOOMGENERIC_RESY) h = DOOMGENERIC_RESY - y;
+    if (w <= 0 || h <= 0) return;
+
+    for (int yy = y; yy < y + h; ++yy) {
+        memset(&DG_ScreenBuffer[yy * DOOMGENERIC_RESX + x], color, (size_t)w);
+    }
+}
+
+static void ascii_to_upper(char *dst, size_t dst_size, const char *src) {
+    if (dst_size == 0) return;
+    size_t i = 0;
+    for (; src[i] && (i + 1) < dst_size; ++i) {
+        unsigned char c = (unsigned char)src[i];
+        if (c >= 'a' && c <= 'z') c = (unsigned char)(c - 'a' + 'A');
+        dst[i] = (char)c;
+    }
+    dst[i] = '\0';
+}
+
+static void render_iwad_menu(const char *const *available,
+                             int available_count,
+                             int selected,
+                             int menu_x,
+                             int menu_y,
+                             int line_h,
+                             int menu_w,
+                             int menu_h,
+                             int highlight_h) {
+    // Clear menu area.
+    fill_rect(menu_x - 2, menu_y - 2, menu_w + 4, menu_h + 4, 0);
+
+    if (available_count <= 0) {
+        draw_text_5x7(menu_x, menu_y, "NONE", 1);
+        return;
+    }
+
+    for (int i = 0; i < available_count; ++i) {
+        const int y = menu_y + i * line_h;
+        char disp[32];
+        ascii_to_upper(disp, sizeof(disp), available[i]);
+
+        if (i == selected) {
+            fill_rect(menu_x - 2, y - 1, menu_w + 4, highlight_h, 1);
+            draw_text_5x7(menu_x, y, disp, 0);
+        } else {
+            draw_text_5x7(menu_x, y, disp, 1);
+        }
+    }
+}
 
 static void draw_char_5x7(int x, int y, char ch, pixel_t color) {
     // 5x7 glyphs, bits are MSB->LSB across 5 columns.
@@ -403,22 +468,28 @@ void DG_StartScreen(void) {
         "doom1.wad",
     };
 
-    draw_text_5x7(8, 16, "DOOM IWADS:", 1);
-    int found = 0;
-    int line = 0;
+    const int menu_x = 8;
+    const int menu_y = 32;
+    const int line_h = 10;
+    const int menu_w = 6 * 14; // enough for "PLUTONIA.WAD" + padding
+    const int menu_h = (int)(sizeof(doom_iwads) / sizeof(doom_iwads[0])) * line_h;
+    const int highlight_h = 9;
+
+    draw_text_5x7(menu_x, 16, "DOOM IWADS:", 1);
+    draw_text_5x7(menu_x, DOOMGENERIC_RESY - 16, "PRESS ENTER", 1);
+
+    // Build list of available IWADs.
+    const char *available[sizeof(doom_iwads) / sizeof(doom_iwads[0])];
+    int available_count = 0;
     for (size_t i = 0; i < sizeof(doom_iwads) / sizeof(doom_iwads[0]); ++i) {
         FILINFO info;
         if (f_stat(doom_iwads[i], &info) == FR_OK) {
-            draw_text_5x7(8, 32 + line * 10, doom_iwads[i], 1);
-            found++;
-            line++;
+            available[available_count++] = doom_iwads[i];
         }
     }
-    if (!found) {
-        draw_text_5x7(8, 32, "NONE", 1);
-    }
 
-    draw_text_5x7(8, DOOMGENERIC_RESY - 16, "PRESS ENTER", 1);
+    int selected = 0;
+    render_iwad_menu(available, available_count, selected, menu_x, menu_y, line_h, menu_w, menu_h, highlight_h);
 
     // Print WAD scan after ~3s or as soon as USB CDC is connected.
     // If the first print happens while disconnected (common if the host opens the monitor late),
@@ -450,7 +521,26 @@ void DG_StartScreen(void) {
         unsigned char key = 0;
         while (DG_GetKey(&pressed, &key)) {
             if (pressed && key == KEY_ENTER) {
+                if (available_count > 0) {
+                    static char *new_argv[4];
+                    new_argv[0] = (char *)"doom";
+                    new_argv[1] = (char *)"-iwad";
+                    new_argv[2] = (char *)available[selected];
+                    new_argv[3] = NULL;
+                    myargc = 3;
+                    myargv = new_argv;
+                }
                 return;
+            }
+
+            if (!pressed || available_count <= 0) continue;
+
+            if (key == KEY_UPARROW || key == 'w' || key == 'W') {
+                selected = (selected - 1 + available_count) % available_count;
+                render_iwad_menu(available, available_count, selected, menu_x, menu_y, line_h, menu_w, menu_h, highlight_h);
+            } else if (key == KEY_DOWNARROW || key == 's' || key == 'S') {
+                selected = (selected + 1) % available_count;
+                render_iwad_menu(available, available_count, selected, menu_x, menu_y, line_h, menu_w, menu_h, highlight_h);
             }
         }
         sleep_ms(10);
