@@ -423,6 +423,40 @@ static void draw_animated_background_border(uint32_t t_ms,
     }
 }
 
+static void fade_start_screen_bg_to_black(const uint32_t bg_pal[16], uint32_t title_hl_rgb, int steps, int step_delay_ms) {
+    if (steps <= 0) return;
+    if (step_delay_ms < 0) step_delay_ms = 0;
+
+    for (int s = 0; s <= steps; ++s) {
+        const int num = steps - s;
+        const int den = steps;
+
+        for (int i = 0; i < 16; ++i) {
+            const uint32_t base = bg_pal[i];
+            uint32_t r = (base >> 16) & 0xFF;
+            uint32_t g = (base >> 8) & 0xFF;
+            uint32_t b = base & 0xFF;
+            r = (r * (uint32_t)num) / (uint32_t)den;
+            g = (g * (uint32_t)num) / (uint32_t)den;
+            b = (b * (uint32_t)num) / (uint32_t)den;
+            graphics_set_palette(2 + i, (r << 16) | (g << 8) | b);
+        }
+
+        {
+            const uint32_t base = title_hl_rgb;
+            uint32_t r = (base >> 16) & 0xFF;
+            uint32_t g = (base >> 8) & 0xFF;
+            uint32_t b = base & 0xFF;
+            r = (r * (uint32_t)num) / (uint32_t)den;
+            g = (g * (uint32_t)num) / (uint32_t)den;
+            b = (b * (uint32_t)num) / (uint32_t)den;
+            graphics_set_palette(18, (r << 16) | (g << 8) | b);
+        }
+
+        if (step_delay_ms) sleep_ms((uint32_t)step_delay_ms);
+    }
+}
+
 static int ascii_tolower(int c) {
     if (c >= 'A' && c <= 'Z') return c - 'A' + 'a';
     return c;
@@ -624,6 +658,8 @@ void DG_StartScreen(void) {
     // Solid black background using palette index 0.
     graphics_set_palette(0, 0x000000);
     graphics_set_palette(1, 0xFFFFFF);
+    // Reserved for the loading window text/border (keep bright even after we dim UI text).
+    graphics_set_palette(20, 0xFFFFFF);
 
     // Background palette (2..17): dark Doom-ish reds/browns.
     static const uint32_t doom_bg_pal[16] = {
@@ -637,6 +673,7 @@ void DG_StartScreen(void) {
     }
 
     // Title highlight: 20% brighter than the brightest demo red.
+    uint32_t title_hl_rgb;
     {
         const uint32_t base = doom_bg_pal[15];
         uint32_t r = (base >> 16) & 0xFF;
@@ -648,7 +685,8 @@ void DG_StartScreen(void) {
         if (r > 255) r = 255;
         if (g > 255) g = 255;
         if (b > 255) b = 255;
-        graphics_set_palette(18, (r << 16) | (g << 8) | b);
+        title_hl_rgb = (r << 16) | (g << 8) | b;
+        graphics_set_palette(18, title_hl_rgb);
     }
     memset(DG_ScreenBuffer, 0, DOOMGENERIC_RESX * DOOMGENERIC_RESY * sizeof(pixel_t));
 
@@ -789,6 +827,41 @@ void DG_StartScreen(void) {
         while (DG_GetKey(&pressed, &key)) {
             if (pressed && key == KEY_ENTER) {
                 if (available_count > 0) {
+                    // Make all existing UI text dark grey (palette index 1) so it's readable
+                    // on the fading background, but keep the loading window text bright.
+                    graphics_set_palette(1, 0x404040);
+
+                    // Title left was previously black-on-red; redraw it using the (now grey) text color.
+                    draw_text_5x7_scaled(title_x, title_y, title_left, 1, title_scale, false);
+
+                    // Remove selection inversion (black text on grey highlight) by redrawing the menu
+                    // without a selected item.
+                    render_iwad_menu_entries(available, available_count, -1, menu_x, menu_y, line_h, menu_w, menu_h, highlight_h);
+
+                    // Stop animation, fade out the start-screen background, and show a centered loading window.
+                    fade_start_screen_bg_to_black(doom_bg_pal, title_hl_rgb, 10, 20);
+
+                    char msg[96];
+                    snprintf(msg, sizeof(msg), "Loading WAD: %s...", available[selected]->filename);
+
+                    const int pad_x = 10;
+                    const int pad_y = 8;
+                    const int msg_w = text_width_5x7(msg, 1);
+                    int win_w = msg_w + pad_x * 2;
+                    if (win_w > DOOMGENERIC_RESX - 40) win_w = DOOMGENERIC_RESX - 40;
+                    const int win_h = 7 + pad_y * 2;
+                    const int win_x = (DOOMGENERIC_RESX - win_w) / 2;
+                    const int win_y = (DOOMGENERIC_RESY - win_h) / 2;
+
+                    fill_rect(win_x, win_y, win_w, win_h, 0);
+                    // Border
+                    fill_rect(win_x, win_y, win_w, 1, 20);
+                    fill_rect(win_x, win_y + win_h - 1, win_w, 1, 20);
+                    fill_rect(win_x, win_y, 1, win_h, 20);
+                    fill_rect(win_x + win_w - 1, win_y, 1, win_h, 20);
+
+                    draw_text_5x7(win_x + pad_x, win_y + pad_y, msg, 20);
+
                     static char *new_argv[4];
                     new_argv[0] = (char *)"doom";
                     new_argv[1] = (char *)"-iwad";
