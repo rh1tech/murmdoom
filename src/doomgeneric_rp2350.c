@@ -906,8 +906,19 @@ uint32_t DG_GetTicksMs() {
 int DG_GetKey(int* pressed, unsigned char* key) {
     ps2kbd_tick();
     ps2mouse_wrapper_tick();  // Process PS/2 mouse events
-    usbhid_wrapper_tick();    // Process USB HID events
-    return ps2kbd_get_key(pressed, key);
+    // Note: usbhid_wrapper_tick() is called from I_StartTic() during Doom gameplay
+    
+    // Check PS/2 keyboard first
+    if (ps2kbd_get_key(pressed, key)) {
+        return 1;
+    }
+    
+    // Then check USB HID keyboard directly (for pre-Doom screens like WAD selection)
+    if (usbhid_wrapper_get_key(pressed, key)) {
+        return 1;
+    }
+    
+    return 0;
 }
 
 void DG_SetWindowTitle(const char * title) {

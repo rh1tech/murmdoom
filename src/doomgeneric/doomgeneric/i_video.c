@@ -310,6 +310,12 @@ void I_StartFrame (void)
 
 void I_StartTic (void)
 {
+	// Process USB HID events and post to Doom event queue
+	// This is only called during Doom gameplay, not on WAD selection screen
+#ifdef USB_HID_ENABLED
+	extern void usbhid_wrapper_tick(void);
+	usbhid_wrapper_tick();
+#endif
 	I_GetEvent();
 }
 

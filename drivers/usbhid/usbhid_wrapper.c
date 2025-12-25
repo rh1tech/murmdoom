@@ -193,3 +193,28 @@ int usbhid_wrapper_mouse_connected(void) {
     return 0;
 #endif
 }
+
+int usbhid_wrapper_get_key(int *pressed, unsigned char *key) {
+#ifdef USB_HID_ENABLED
+    if (!usb_hid_initialized) return 0;
+    
+    // Process USB events first
+    usbhid_task();
+    
+    // Get next key action from the queue
+    uint8_t hid_keycode;
+    int down;
+    if (usbhid_get_key_action(&hid_keycode, &down)) {
+        unsigned char doom_key = hid_to_doom_key(hid_keycode);
+        if (doom_key != 0) {
+            *pressed = down;
+            *key = doom_key;
+            return 1;
+        }
+    }
+#else
+    (void)pressed;
+    (void)key;
+#endif
+    return 0;
+}
