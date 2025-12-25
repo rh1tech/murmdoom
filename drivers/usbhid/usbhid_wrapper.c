@@ -36,10 +36,10 @@ static inline int16_t clamp_delta(int16_t val, int16_t max_val) {
 //--------------------------------------------------------------------
 
 static unsigned char hid_to_doom_key(uint8_t hid_keycode) {
-    // Modifier pseudo-keycodes
-    if (hid_keycode == 0xE0) return KEY_RCTRL;   // Control
-    if (hid_keycode == 0xE1) return KEY_RSHIFT;  // Shift
-    if (hid_keycode == 0xE2) return KEY_RALT;    // Alt
+    // Modifier pseudo-keycodes (from hid_app.c)
+    if (hid_keycode == 0xE0) return KEY_FIRE;    // Ctrl -> FIRE action (shoot)
+    if (hid_keycode == 0xE1) return KEY_RSHIFT;  // Shift -> run
+    if (hid_keycode == 0xE2) return KEY_RALT;    // Alt -> strafe
     
     // Letters A-Z (HID 0x04-0x1D -> 'a'-'z')
     if (hid_keycode >= 0x04 && hid_keycode <= 0x1D) {
@@ -63,7 +63,7 @@ static unsigned char hid_to_doom_key(uint8_t hid_keycode) {
         case 0x29: return KEY_ESCAPE;      // Escape
         case 0x2A: return KEY_BACKSPACE;   // Backspace
         case 0x2B: return KEY_TAB;         // Tab
-        case 0x2C: return ' ';             // Space
+        case 0x2C: return KEY_USE;         // Space -> USE action (open doors)
         case 0x2D: return KEY_MINUS;       // Minus
         case 0x2E: return KEY_EQUALS;      // Equals
         case 0x2F: return '[';             // Left bracket
@@ -112,31 +112,16 @@ void usbhid_wrapper_init(void) {
 }
 
 //--------------------------------------------------------------------
-// Tick - Process USB HID events
+// Mouse Tick - Process USB HID mouse events only
+// Keyboard events flow through usbhid_wrapper_get_key() -> DG_GetKey()
 //--------------------------------------------------------------------
 
-void usbhid_wrapper_tick(void) {
+void usbhid_wrapper_mouse_tick(void) {
 #ifdef USB_HID_ENABLED
     if (!usb_hid_initialized) return;
     
-    // Process USB host events
+    // Process USB host events (this also queues keyboard events for get_key)
     usbhid_task();
-    
-    // Process keyboard events
-    uint8_t hid_keycode;
-    int down;
-    while (usbhid_get_key_action(&hid_keycode, &down)) {
-        unsigned char doom_key = hid_to_doom_key(hid_keycode);
-        if (doom_key != 0) {
-            event_t ev;
-            ev.type = down ? ev_keydown : ev_keyup;
-            ev.data1 = doom_key;
-            ev.data2 = 0;
-            ev.data3 = 0;
-            ev.data4 = 0;
-            D_PostEvent(&ev);
-        }
-    }
     
     // Process mouse events
     usbhid_mouse_state_t mouse;
