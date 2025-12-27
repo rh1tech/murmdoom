@@ -80,6 +80,8 @@ Two GPIO layouts are supported: **M1** and **M2**. The PSRAM pin is auto-detecte
 | CLK    | 14      | 0       |
 | DATA   | 15      | 1       |
 
+> **Note:** PS/2 mouse is only supported in overclocked firmware (378/133 MHz or higher). At stock clock speeds (252/100 MHz), PS/2 keyboard works but mouse input may be unreliable due to timing constraints.
+
 ### I2S Audio
 | Signal | M1 GPIO | M2 GPIO |
 |--------|---------|---------|
