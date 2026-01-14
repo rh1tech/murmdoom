@@ -519,7 +519,7 @@ static bool is_known_compatible_iwad_name(const char *name) {
 }
 
 static void print_available_wads_to_console(void) {
-    console_printf("\n=== WAD scan (/) ===\n");
+    console_printf("\n=== WAD scan (/doom) ===\n");
     fflush(stdout);
 
     // 1) Print known-compatible IWADs found by exact name.
@@ -559,9 +559,9 @@ static void print_available_wads_to_console(void) {
     console_printf("Other .wad files:\n");
     DIR dir;
     FILINFO fno;
-    FRESULT fr = f_opendir(&dir, "/");
+    FRESULT fr = f_opendir(&dir, "/doom");
     if (fr != FR_OK) {
-        console_printf("  (failed to open root dir: %d)\n", (int)fr);
+        console_printf("  (failed to open doom dir: %d)\n", (int)fr);
         fflush(stdout);
         return;
     }
@@ -638,8 +638,8 @@ void DG_Init() {
         panic("Failed to mount SD card");
     }
     
-    // Set current directory to root (required for relative paths)
-    f_chdir("/");
+    // Set current directory to doom folder (required for relative paths)
+    f_chdir("/doom");
     
     // Initialize stdio wrapper for FatFS
     stdio_fatfs_init();
