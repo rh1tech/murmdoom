@@ -162,8 +162,18 @@ picotool load -f build/murmdoom.uf2
 ## SD Card Setup
 
 1. Format an SD card as FAT32
-2. Copy any DOOM-engine WAD file to the root (e.g., `doom1.wad`, `doom.wad`, `doom2.wad`, `plutonia.wad`, `tnt.wad`, or custom WADs)
-3. A `.savegame/` directory will be created automatically for save files
+2. Create a `doom` folder in the root of the SD card
+3. Copy any DOOM-engine WAD file to the `doom` folder (e.g., `doom1.wad`, `doom.wad`, `doom2.wad`, `plutonia.wad`, `tnt.wad`, or custom WADs)
+4. A `.savegame/` directory will be created automatically for save files
+
+**Example SD card structure:**
+```
+SD Card/
+└── doom/
+    ├── doom.wad
+    ├── doom2.wad
+    └── ...
+```
 
 ### Shareware WAD Downloads
 
